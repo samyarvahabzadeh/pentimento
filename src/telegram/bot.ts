@@ -1,4 +1,4 @@
-import { Bot, webhookCallback, Keyboard } from 'grammy';
+import { Bot, webhookCallback, Keyboard, InputFile } from 'grammy';
 import * as dotenv from 'dotenv';
 import * as http from 'node:http';
 dotenv.config();
@@ -8,6 +8,7 @@ import { resolvePlayerTurn } from '../core/resolvePlayerTurn.js';
 import { createTransport } from '../transport/transportFactory.js';
 import { getRunByTelegramUser, saveRun, deleteRun } from '../storage/db.js';
 import { INTRO_DIALOGUE, ROLE_SELECTION_PROMPT } from '../canon/node00.js';
+import { getCoverPath, getPendingMediaForTurn } from './mediaDispatcher.js';
 import type { RunState } from '../core/types.js';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -53,6 +54,21 @@ bot.command('start', async (ctx) => {
 
   const state = createNewState();
   saveRun(state.canonical.runId, userId, state);
+
+  const cover = getCoverPath();
+  if (cover) {
+    try {
+      await ctx.replyWithPhoto(new InputFile(cover), {
+        caption: buildIntroMessage(),
+        parse_mode: 'Markdown',
+        reply_markup: roleKeyboard,
+      });
+      return;
+    } catch (e: any) {
+      console.error('[Bot] Error sending cover photo:', e.message);
+    }
+  }
+
   await ctx.reply(buildIntroMessage(), {
     parse_mode: 'Markdown',
     reply_markup: roleKeyboard
@@ -69,6 +85,21 @@ bot.command('restart', async (ctx) => {
 
   const state = createNewState();
   saveRun(state.canonical.runId, userId, state);
+
+  const cover = getCoverPath();
+  if (cover) {
+    try {
+      await ctx.replyWithPhoto(new InputFile(cover), {
+        caption: '🔄 *ماجراجویی ریست شد.*\n\n' + buildIntroMessage(),
+        parse_mode: 'Markdown',
+        reply_markup: roleKeyboard,
+      });
+      return;
+    } catch (e: any) {
+      console.error('[Bot] Error sending cover photo on restart:', e.message);
+    }
+  }
+
   await ctx.reply('🔄 *ماجراجویی ریست شد.*\n\n' + buildIntroMessage(), {
     parse_mode: 'Markdown',
     reply_markup: roleKeyboard
@@ -153,6 +184,23 @@ bot.on('message:text', async (ctx) => {
     }
 
     const isRoleSelection = record.state.canonical.currentNode === 'NODE_00';
+
+    // Check if any milestone media should be shown for this turn
+    const media = getPendingMediaForTurn(
+      record.state,
+      result.stateAfter,
+      result.validation.acceptedActionId
+    );
+
+    if (media) {
+      saveRun(record.runId, userIdStr, result.stateAfter);
+      try {
+        await ctx.replyWithPhoto(new InputFile(media.mediaPath));
+      } catch (e: any) {
+        console.error('[Bot] Error sending turn photo:', e.message);
+      }
+    }
+
     await ctx.reply(reply, {
       parse_mode: userDebugModes.get(userId) ? 'Markdown' : undefined,
       reply_markup: isRoleSelection ? { remove_keyboard: true } : undefined,
