@@ -1,5 +1,6 @@
 import { Bot } from 'grammy';
 import * as dotenv from 'dotenv';
+import * as http from 'node:http';
 dotenv.config();
 
 import { v4 as uuidv4 } from 'uuid';
@@ -8,6 +9,16 @@ import { createTransport } from '../transport/transportFactory.js';
 import { getRunByTelegramUser, saveRun, deleteRun } from '../storage/db.js';
 import { INTRO_DIALOGUE, ROLE_SELECTION_PROMPT } from '../canon/node00.js';
 import type { RunState } from '../core/types.js';
+
+// Minimal HTTP health-check server for Render Web Service
+const port = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Pentimento Telegram Bot is running live.');
+});
+server.listen(port, () => {
+  console.log(`[Bot] Health check server listening on port ${port}`);
+});
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
