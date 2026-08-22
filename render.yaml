@@ -1,0 +1,20 @@
+services:
+  - type: worker
+    name: pentimento-bot
+    runtime: node
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm run bot
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: ACTIVE_PROVIDER
+        value: gemini
+      - key: GEMINI_MODEL
+        value: gemini-3.6-flash
+      - key: PENTIMENTO_DEBUG
+        value: "1"
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

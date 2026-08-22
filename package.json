@@ -1,0 +1,47 @@
+{
+  "name": "pentimento",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "game:text": "tsx src/cli/textHarness.ts",
+    "smoke": "tsx src/cli/smokeTest.ts",
+    "director:test": "tsx src/cli/directorBenchmark.ts",
+    "test:15turns": "tsx src/cli/acceptanceTest15Turns.ts",
+    "test:node02": "tsx src/cli/node02IntegrationTest.ts",
+    "test:node03": "tsx src/cli/node03SimulationTest.ts",
+    "test:bible": "tsx src/cli/characterBibleSimulationTest.ts",
+    "test:node0405": "tsx src/cli/node0405IntegrationTest.ts",
+    "test:node06": "tsx src/cli/node06IntegrationTest.ts",
+    "test:node07": "tsx src/cli/node07IntegrationTest.ts",
+    "test:node0809": "tsx src/cli/node0809IntegrationTest.ts",
+    "test:node10": "tsx src/cli/node10IntegrationTest.ts",
+    "test:node1112": "tsx src/cli/node1112IntegrationTest.ts",
+    "test:node1314": "tsx src/cli/node1314IntegrationTest.ts",
+    "test:node15": "tsx src/cli/node15IntegrationTest.ts",
+    "test:node16": "tsx src/cli/node16IntegrationTest.ts",
+    "test:node17": "tsx src/cli/node17IntegrationTest.ts",
+    "test:node18": "tsx src/cli/node18IntegrationTest.ts",
+    "test:endings": "tsx src/cli/endingResolverTestSuite.ts",
+    "test:balancing": "tsx src/cli/narrativeBalancingValidationTest.ts",
+    "test:playtest": "tsx src/cli/autonomousPlaytestAgent.ts",
+    "test:80turns": "tsx src/cli/deepHumanPlaytest80Turns.ts",
+    "models:list": "tsx src/transport/listModels.ts",
+    "bot": "tsx src/telegram/bot.ts",
+    "probe": "tsx src/transport/probe.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "dotenv": "^16.4.5",
+    "grammy": "^1.26.0",
+    "uuid": "^9.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.12.7",
+    "@types/uuid": "^9.0.8",
+    "tsx": "^4.9.3",
+    "typescript": "^5.4.5"
+  }
+}

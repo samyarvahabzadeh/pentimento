@@ -1,0 +1,58 @@
+می‌خواهم Pentimento Text Core را از صفر بسازی.
+
+این workspace شامل فایل‌های زیر است:
+- README.md
+- PENTIMENTO.md
+- AGENT_RULES.md
+- TEXT_CORE_SPEC.md
+- CONTRACTS.ts
+- ACCEPTANCE_TESTS.md
+- .env.example
+
+قبل از کدنویسی همه را بخوان.
+
+قانون اصلی:
+تو قرار نیست معماری را دوباره طراحی کنی یا سند جدید تولید کنی. قراردادها و مرزهای معماری داخل فایل‌ها مشخص شده‌اند. مأموریت تو implementation و تست واقعی است.
+
+فعلاً فقط یک Text/CLI game بساز.
+UI، Telegram، React، CSS و deployment خارج از scope هستند.
+
+اولین و تنها milestone فعلی:
+NODE 01 باید واقعاً مثل یک Dungeon Master متنی کار کند.
+
+کار را این ترتیب انجام بده:
+
+1. پروژه TypeScript/Node تمیز ایجاد کن.
+2. domain/state، deterministic engine، DirectorService، ContextBuilder، ProposalValidator، EventLedger، Memory V1 و CLI harness را پیاده‌سازی کن.
+3. Director را از طریق provider-neutral LLMTransport به OrcaRouter وصل کن.
+4. کلید را فقط از environment بگیر و هیچ secretی log نکن.
+5. قبل از ادعای موفقیت، direct probe واقعی OrcaRouter انجام بده.
+6. NODE 01 را end-to-end پیاده‌سازی کن.
+7. `npm run game:text` باید بازی تعاملی را در terminal اجرا کند.
+8. تست‌های ACCEPTANCE_TESTS.md را اجرا کن.
+9. حداقل یک transcript واقعی 15-turn با مدل واقعی اجرا کن.
+10. هر failure را تا root cause trace و اصلاح کن.
+
+محدودیت:
+- NODE 02 را نساز.
+- UI نساز.
+- Telegram نساز.
+- vector DB یا agent framework اضافه نکن.
+- fallback generic تولید نکن.
+- regex را مفسر اصلی زبان نکن.
+- LLM را مالک canonical state نکن.
+
+اگر library کوچک و mature دقیقاً یک نیاز زیرساختی را حل می‌کند، می‌توانی GitHub را بررسی کنی؛ ولی قبل از اضافه‌کردن dependency بزرگ، نشان بده چرا کد کوچک محلی کافی نیست.
+
+در طول اجرا برای اجازه گرفتن روی هر قدم متوقف نشو.
+تا جایی پیش برو که NODE 01 طبق Definition of Done فایل TEXT_CORE_SPEC.md قبول شود.
+
+در پایان فقط این‌ها را گزارش کن:
+- چه چیزهایی پیاده‌سازی شد
+- ساختار فایل نهایی
+- نتایج تست واقعی
+- transcript 15-turn
+- failureهای باقی‌مانده
+- قدم بعدی پیشنهادی
+
+الان implementation را شروع کن.
