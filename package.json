@@ -28,17 +28,16 @@
     "models:list": "tsx src/transport/listModels.ts",
     "bot": "tsx src/telegram/bot.ts",
     "probe": "tsx src/transport/probe.ts",
+    "start": "tsx src/telegram/bot.ts",
     "build": "tsc"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.3",
     "dotenv": "^16.4.5",
     "grammy": "^1.26.0",
     "uuid": "^9.0.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/better-sqlite3": "^7.6.8",
     "@types/node": "^20.12.7",
     "@types/uuid": "^9.0.8",
     "tsx": "^4.9.3",
