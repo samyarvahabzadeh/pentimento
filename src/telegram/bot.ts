@@ -1,4 +1,4 @@
-import { Bot, webhookCallback } from 'grammy';
+import { Bot, webhookCallback, Keyboard } from 'grammy';
 import * as dotenv from 'dotenv';
 import * as http from 'node:http';
 dotenv.config();
@@ -30,14 +30,20 @@ function createNewState(): RunState {
   return createInitialRunState();
 }
 
+const roleKeyboard = new Keyboard()
+  .text('1. مورخ هنری 🎨').text('2. کیمیاگر قهوه ☕').row()
+  .text('3. تحلیلگر سیستم 💻').text('4. کارآگاه 🔍')
+  .resized()
+  .oneTime();
+
 /** Canonical intro message: three-line dialogue + role selection menu. */
 function buildIntroMessage(): string {
   const lines = (INTRO_DIALOGUE as ReadonlyArray<{ speaker: string; text: string }>).map(d => {
-    if (d.speaker === 'Unknown') return `ناشناس:\n«${d.text}»`;
-    if (d.speaker === 'Player') return `تو:\n«${d.text}»`;
+    if (d.speaker === 'Unknown') return `📩 *ناشناس:*\n«${d.text}»`;
+    if (d.speaker === 'Player') return `👤 *تو:*\n«${d.text}»`;
     return `«${d.text}»`;
   });
-  return lines.join('\n\n') + '\n\n' + '—'.repeat(24) + '\n\n' + ROLE_SELECTION_PROMPT;
+  return lines.join('\n\n') + '\n\n' + '━━━━━━━━━━━━━━━━━━━━' + '\n\n' + ROLE_SELECTION_PROMPT;
 }
 
 // ── /start ────────────────────────────────────────────────────────────────────
@@ -47,7 +53,10 @@ bot.command('start', async (ctx) => {
 
   const state = createNewState();
   saveRun(state.canonical.runId, userId, state);
-  await ctx.reply(buildIntroMessage());
+  await ctx.reply(buildIntroMessage(), {
+    parse_mode: 'Markdown',
+    reply_markup: roleKeyboard
+  });
 });
 
 // ── /restart ──────────────────────────────────────────────────────────────────
@@ -60,7 +69,10 @@ bot.command('restart', async (ctx) => {
 
   const state = createNewState();
   saveRun(state.canonical.runId, userId, state);
-  await ctx.reply('🔄 Run reset.\n\n' + buildIntroMessage());
+  await ctx.reply('🔄 *ماجراجویی ریست شد.*\n\n' + buildIntroMessage(), {
+    parse_mode: 'Markdown',
+    reply_markup: roleKeyboard
+  });
 });
 
 // ── /debug ────────────────────────────────────────────────────────────────────
@@ -140,7 +152,11 @@ bot.on('message:text', async (ctx) => {
       ].join('\n');
     }
 
-    await ctx.reply(reply, { parse_mode: userDebugModes.get(userId) ? 'Markdown' : undefined });
+    const isRoleSelection = record.state.canonical.currentNode === 'NODE_00';
+    await ctx.reply(reply, {
+      parse_mode: userDebugModes.get(userId) ? 'Markdown' : undefined,
+      reply_markup: isRoleSelection ? { remove_keyboard: true } : undefined,
+    });
 
   } catch (err: any) {
     console.error('[Bot] Error processing turn:', err.message);
