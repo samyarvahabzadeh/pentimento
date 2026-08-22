@@ -1,4 +1,4 @@
-import { Bot } from 'grammy';
+import { Bot, webhookCallback } from 'grammy';
 import * as dotenv from 'dotenv';
 import * as http from 'node:http';
 dotenv.config();
@@ -9,16 +9,6 @@ import { createTransport } from '../transport/transportFactory.js';
 import { getRunByTelegramUser, saveRun, deleteRun } from '../storage/db.js';
 import { INTRO_DIALOGUE, ROLE_SELECTION_PROMPT } from '../canon/node00.js';
 import type { RunState } from '../core/types.js';
-
-// Minimal HTTP health-check server for Render Web Service
-const port = Number(process.env.PORT) || 3000;
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-  res.end('Pentimento Telegram Bot is running live.');
-});
-server.listen(port, '0.0.0.0', () => {
-  console.log(`[Bot] Health check server listening on 0.0.0.0:${port}`);
-});
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -163,5 +153,34 @@ bot.catch((err) => {
   console.error('[Bot] Uncaught error:', err.message);
 });
 
-console.log('[Bot] Starting long polling...');
-bot.start();
+// ── HTTP Server & Webhook Handler ─────────────────────────────────────────────
+const port = Number(process.env.PORT) || 3000;
+const renderUrl = process.env.RENDER_EXTERNAL_URL || 'https://pentimento-bot.onrender.com';
+const webhookHandler = webhookCallback(bot, 'http');
+
+const server = http.createServer(async (req, res) => {
+  if (req.method === 'POST' && (req.url === '/webhook' || req.url === '/')) {
+    try {
+      await webhookHandler(req, res);
+    } catch (e: any) {
+      console.error('[Bot] Webhook error:', e.message);
+      if (!res.headersSent) {
+        res.writeHead(500);
+        res.end('Webhook Error');
+      }
+    }
+    return;
+  }
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Pentimento Telegram Bot is running live.');
+});
+
+server.listen(port, '0.0.0.0', async () => {
+  console.log(`[Bot] Server listening on 0.0.0.0:${port}`);
+  try {
+    await bot.api.setWebhook(`${renderUrl}/webhook`);
+    console.log(`[Bot] Webhook active on: ${renderUrl}/webhook`);
+  } catch (e: any) {
+    console.error('[Bot] Webhook setup note:', e.message);
+  }
+});
