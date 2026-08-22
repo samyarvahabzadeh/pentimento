@@ -11,13 +11,13 @@ import { INTRO_DIALOGUE, ROLE_SELECTION_PROMPT } from '../canon/node00.js';
 import type { RunState } from '../core/types.js';
 
 // Minimal HTTP health-check server for Render Web Service
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT) || 3000;
 const server = http.createServer((req, res) => {
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Pentimento Telegram Bot is running live.');
 });
-server.listen(port, () => {
-  console.log(`[Bot] Health check server listening on port ${port}`);
+server.listen(port, '0.0.0.0', () => {
+  console.log(`[Bot] Health check server listening on 0.0.0.0:${port}`);
 });
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
