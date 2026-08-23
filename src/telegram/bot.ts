@@ -246,6 +246,17 @@ bot.catch((err) => {
   console.error('[Bot] Uncaught error:', err.message);
 });
 
+
+// ── HTTP Health Check Server (Required for Render Web Service) ──
+const PORT = process.env.PORT || 3000;
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  res.end('Pentimento Telegram Bot is running live.');
+});
+server.listen(PORT, () => {
+  console.log(`[Bot] HTTP Health server listening on port ${PORT}`);
+});
+
 // ─── Launcher ─────────────────────────────────────────────────────
 console.log('[Bot] Initializing Telegram Long Polling...');
 bot.api.deleteWebhook({ drop_pending_updates: true }).then(() => {
