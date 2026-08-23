@@ -247,25 +247,53 @@ bot.catch((err) => {
 });
 
 
-// ── HTTP Health Check Server (Required for Render Web Service) ──
+// ── HTTP Health Check & Webhook Server (Auto-Wake for Render) ──
 const PORT = process.env.PORT || 3000;
-const server = http.createServer((req, res) => {
+const isRender = !!process.env.RENDER || !!process.env.PORT;
+const webhookPath = '/webhook';
+const webhookCallbackHandler = webhookCallback(bot, 'http');
+
+const server = http.createServer(async (req, res) => {
+  if (req.method === 'POST' && req.url === webhookPath) {
+    try {
+      return await webhookCallbackHandler(req, res);
+    } catch (e: any) {
+      console.error('[Bot] Webhook error:', e.message);
+      res.writeHead(500);
+      return res.end();
+    }
+  }
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('Pentimento Telegram Bot is running live.');
 });
-server.listen(PORT, () => {
-  console.log(`[Bot] HTTP Health server listening on port ${PORT}`);
+
+server.listen(PORT, async () => {
+  console.log(`[Bot] HTTP Server listening on port ${PORT}`);
+  
+  if (isRender && process.env.RENDER) {
+    const webhookUrl = process.env.RENDER_EXTERNAL_URL 
+      ? `${process.env.RENDER_EXTERNAL_URL}${webhookPath}`
+      : `https://pentimento-bot.onrender.com${webhookPath}`;
+      
+    console.log(`[Bot] Configuring Telegram Webhook to ${webhookUrl}...`);
+    try {
+      await bot.api.setWebhook(webhookUrl, { drop_pending_updates: false });
+      console.log(`[Bot] ✅ Telegram Webhook registered at ${webhookUrl}!`);
+    } catch (e: any) {
+      console.error('[Bot] Failed to register Telegram Webhook:', e.message);
+    }
+  } else {
+    console.log('[Bot] Running via Long Polling in local mode...');
+    try {
+      await bot.api.deleteWebhook({ drop_pending_updates: false });
+      bot.start({
+        onStart: (botInfo) => {
+          console.log(`[Bot] ✅ @${botInfo.username} is running live via Long Polling!`);
+        },
+      });
+    } catch (err: any) {
+      console.error('[Bot] Startup error:', err.message);
+    }
+  }
 });
 
-// ─── Launcher ─────────────────────────────────────────────────────
-console.log('[Bot] Initializing Telegram Long Polling...');
-bot.api.deleteWebhook({ drop_pending_updates: true }).then(() => {
-  console.log('[Bot] Webhook deleted & old pending updates dropped.');
-  return bot.start({
-    onStart: (botInfo) => {
-      console.log(`[Bot] ✅ @${botInfo.username} is running live via Long Polling!`);
-    },
-  });
-}).catch((err) => {
-  console.error('[Bot] Startup error:', err.message);
-});
