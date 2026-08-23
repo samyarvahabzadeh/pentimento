@@ -192,19 +192,29 @@ export function resolveEnding(state: RunState): EndingEvaluationResult {
   let vetoApplied: string | undefined;
 
   // ── PRIORITY 0: Fatal & Disastrous Branching Endings (Re:Zero Style Bad Endings) ──
-  if (flags.includes('drank_lethal_solvent') || state.canonical.stress >= 95 && flags.includes('poison_symptoms_ignored')) {
+  if (flags.includes('abandoned_investigation_went_home') || flags.includes('player_slept_home')) {
+    endingId = 'BAD_ENDING_ABANDONMENT_ARSON';
+    reasons.push('بازیکن پرونده را در نیمه‌شب رها کرد و به خانه رفت؛ کافه شبانه به آتش کشیده شد.');
+  } else if (flags.includes('drank_lethal_solvent') || (state.canonical.stress >= 95 && flags.includes('poison_symptoms_ignored'))) {
     endingId = 'BAD_ENDING_TOXIC_SHOCK';
     reasons.push('بازیکن مایع سمی حلال شیمیایی را نوشید و علائم بحرانی مسمومیت نادیده گرفته شد.');
-  } else if (flags.includes('severe_self_harm') || state.canonical.stress >= 90 && flags.includes('physical_breakdown')) {
+  } else if (flags.includes('severe_self_harm') || (state.canonical.stress >= 90 && flags.includes('physical_breakdown'))) {
     endingId = 'BAD_ENDING_PSYCH_HOLD';
     reasons.push('فروپاشی کامل روانی، خودزنی و آسیب جسمی شدید موجب مداخله فیزیکی پرسنل و انتقال با آمبولانس شد.');
+  } else if (flags.includes('syndicate_intercepted') || (state.canonical.threat >= 90 && flags.includes('reckless_street_chase'))) {
+    endingId = 'BAD_ENDING_SYNDICATE_ABDUCTION';
+    reasons.push('تعقیب ناشیانه یا درگیری در خیابان خلوت عظیمیه موجب ربوده شدن توسط ون سیاه سندیکا شد.');
   } else if (flags.includes('assaulted_staff') || flags.includes('threatened_violence_weapon')) {
     endingId = 'BAD_ENDING_POLICE_SHUTDOWN';
     reasons.push('درگیری فیزیکی، تهدید پرسنل یا تخریب کافه موجب حضور فوری پلیس و پلمپ کافه شد.');
+  } else if (flags.includes('accused_insider_falsely') && trustScore <= 20) {
+    endingId = 'BAD_ENDING_INTERNAL_BETRAYAL';
+    reasons.push('اتهام کورکورانه به خودی‌ها و نابودی پیوند رفاقت موجب تخلیه شبانه کافه و سرقت تابلو شد.');
   } else if (flags.includes('expelled_permanently') || (state.canonical.threat >= 85 && trustScore <= 15)) {
     endingId = 'BAD_ENDING_COLD_EXPULSION';
     reasons.push('بی‌اعتمادی مطلق و رفتار تخریبی موجب اخراج خشن بازیکن و قفل شدن درهای کافه در سرمای نیمه‌شب شد.');
   }
+
 
   // ── PRIORITY 1: Hard Veto — Financial Settlement (THE_PRICE) ──
   else if (flags.includes('accepted_financial_offer')) {
@@ -394,7 +404,16 @@ ENDING: EXPOSURE`;
 ENDING: WRONG MAN`;
   }
 
-  // ── 7. BAD_ENDING_TOXIC_SHOCK (مسمومیت کشنده) ──
+  // ── 7. BAD_ENDING_ABANDONMENT_ARSON (رها کردن و آتش‌سوزی شبانه) ──
+  if (endingId === 'BAD_ENDING_ABANDONMENT_ARSON') {
+    return `تصمیم گرفتی پرونده را رها کنی و به خانه برگردی؛ در گرمای تختخواب، چشمانت را روی راز نیمه‌شب بستی.
+اما ساعت ۰۳:۴۵ بامداد با صدای آژیر ممتد خودروهای آتش‌نشانی بیدار شدی.
+کافه پنتیمنتو در آتش‌سوزی عمدی خاکستر شد؛ تابلو به سرقت رفت، سالار و بچه‌ها ناپدید شدند و تمام سرنخ‌ها دود شد و به هوا رفت.
+تو حقیقت را رها کردی و حقیقت همه چیز را با خود سوزاند.
+💀 BAD ENDING: ABANDONMENT & ARSON (فرار و خاکستر)`;
+  }
+
+  // ── 8. BAD_ENDING_TOXIC_SHOCK (مسمومیت کشنده) ──
   if (endingId === 'BAD_ENDING_TOXIC_SHOCK') {
     return `چشمانت سیاهی رفت و سوزش تند حلال صنعتی، مجاری تنفسی و معده‌ات را در بر گرفت.
 صدای فریاد حانیه، سقوط فنجان روی سنگ‌فرش و دستپاچگی مانی برای آوردن آب آخرین صداهایی بود که شنیدی.
@@ -403,7 +422,7 @@ ENDING: WRONG MAN`;
 💀 BAD ENDING: TOXIC SHOCK (مسمومیت کشنده)`;
   }
 
-  // ── 8. BAD_ENDING_PSYCH_HOLD (فروپاشی و خودزنی) ──
+  // ── 9. BAD_ENDING_PSYCH_HOLD (فروپاشی و خودزنی) ──
   if (endingId === 'BAD_ENDING_PSYCH_HOLD') {
     return `کوبیدن مکرر سر بر چوب سرد پیشخوان و جریان خون، سالن را در شوک و بهت فرو برد.
 مانی و آرین از پشت کانتر دویدند و دستانت را مهار کردند، در حالی که یاشین با شماره ۱۱۵ تماس می‌گرفت.
@@ -412,7 +431,25 @@ ENDING: WRONG MAN`;
 💀 BAD ENDING: PSYCHIATRIC HOLD (فروپاشی روانی)`;
   }
 
-  // ── 9. BAD_ENDING_POLICE_SHUTDOWN (حمله و پلمپ) ──
+  // ── 10. BAD_ENDING_SYNDICATE_ABDUCTION (ربوده شدن در کوچه) ──
+  if (endingId === 'BAD_ENDING_SYNDICATE_ABDUCTION') {
+    return `دویدن بی‌محابا در کوچه‌های تاریک و خلوت عظیمیه، تو را مستقیماً به کمینگاه رساند.
+نور چراغ‌های یک ون سیاه چشمانت را کور کرد؛ درِ کشویی با شتاب باز شد و دو مرد با دستکش‌های چرمی دهانت را بستند.
+پیش از آنکه بتوانی کلمه‌ای فریاد بزنی، در تاریکی ون کشیده شدی.
+هیچ اثری از تو در عظیمیه باقی نماند؛ جز یک سکوت ممتد در کوچه حسینی.
+💀 BAD ENDING: SYNDICATE ABDUCTION (ربوده شدن در تاریکی)`;
+  }
+
+  // ── 11. BAD_ENDING_INTERNAL_BETRAYAL (خیانت و سوءظن ویرانگر) ──
+  if (endingId === 'BAD_ENDING_INTERNAL_BETRAYAL') {
+    return `اتهامات کورکورانه و بی‌اساس به رفقای کافه، آخرین ریسمان اعتماد را پاره کرد.
+سالار با تلخی سر تکان داد و پرسنل کافه را ترک کردند.
+قبل از طلوع آفتاب، خریداران ناشناس وارد شدند، تابلوی دستکاری‌شده را بار زدند و کافه پنتیمنتو برای همیشه ورشکست و پلمپ شد.
+سوءظن تو، پیش از دشمن، خانه را از درون سوزاند.
+💀 BAD ENDING: INTERNAL BETRAYAL (فروپاشی از درون)`;
+  }
+
+  // ── 12. BAD_ENDING_POLICE_SHUTDOWN (حمله و پلمپ) ──
   if (endingId === 'BAD_ENDING_POLICE_SHUTDOWN') {
     return `درگیری فیزیکی و تهدید خشن پرسنل، کنترل اوضاع را از دست خارج کرد.
 گشت شبانه پلیس با گزارش همسایگان وارد کوچه حسینی شد.
@@ -421,7 +458,7 @@ ENDING: WRONG MAN`;
 💀 BAD ENDING: POLICE SHUTDOWN (پلمپ قانونی کافه)`;
   }
 
-  // ── 10. BAD_ENDING_COLD_EXPULSION (اخراج دائم) ──
+  // ── 13. BAD_ENDING_COLD_EXPULSION (اخراج دائم) ──
   if (endingId === 'BAD_ENDING_COLD_EXPULSION') {
     return `سنگینی سکوت و خشم پرسنل به اخراجت از کافه انجامید.
 لنگه چوبی درِ پنتیمنتو محکم پشت سرت بسته و قفل شد.
@@ -431,4 +468,5 @@ ENDING: WRONG MAN`;
 
   return `پروندهٔ پنتیمنتو به پایان رسید.`;
 }
+
 

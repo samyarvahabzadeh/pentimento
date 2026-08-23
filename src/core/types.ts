@@ -471,11 +471,15 @@ export type EndingId =
   | 'ESPRESSO'
   | 'EXPOSURE'
   | 'WRONG_MAN'
-  // Disastrous Branching Endings (Re:Zero Style Bad Endings)
+  // 💀 Re:Zero Style Disastrous Bad Endings (پایان‌های فاجعه‌بار و مرگبار)
+  | 'BAD_ENDING_ABANDONMENT_ARSON'
   | 'BAD_ENDING_TOXIC_SHOCK'
   | 'BAD_ENDING_PSYCH_HOLD'
+  | 'BAD_ENDING_SYNDICATE_ABDUCTION'
+  | 'BAD_ENDING_INTERNAL_BETRAYAL'
   | 'BAD_ENDING_COLD_EXPULSION'
   | 'BAD_ENDING_POLICE_SHUTDOWN';
+
 
 
 export interface PreservationProfile {
