@@ -1,16 +1,5 @@
 import type { CanonicalActionId } from '../core/types.js';
 
-/**
- * NODE 00 — Opening / Role Selection
- *
- * This is a mandatory pre-game virtual node.
- * It plays the anonymous message intro and presents Role Selection.
- * No investigation occurs here; it transitions to NODE_01 on role pick.
- *
- * Canon rule: Role determines Investigation advantage ONLY.
- * It does NOT branch the story or create separate paths.
- */
-
 export const NODE_00_ALLOWED_ACTIONS: CanonicalActionId[] = [
   'SELECT_ROLE_ART_HISTORIAN',
   'SELECT_ROLE_COFFEE_ALCHEMIST',
@@ -18,69 +7,68 @@ export const NODE_00_ALLOWED_ACTIONS: CanonicalActionId[] = [
   'SELECT_ROLE_INVESTIGATOR',
 ];
 
-/**
- * The canonical anonymous opening exchange.
- * Source: PENTIMENTO.md (story catalyst).
- */
 export const INTRO_DIALOGUE = [
   { speaker: 'Unknown', text: 'این تابلو برای فروش نیست.' },
-  { speaker: 'Player', text: 'کدوم تابلو؟' },
+  { speaker: 'Salar', text: 'کدوم تابلو؟' },
   { speaker: 'Unknown', text: 'دقیقاً.' },
 ] as const;
 
-/**
- * Role descriptions shown to player during selection.
- * Each role provides an Investigation advantage only — no story separation.
- */
 export const ROLE_DESCRIPTIONS: Record<string, { fa: string; advantage: string }> = {
   art_historian: {
     fa: 'مورخ هنری',
-    advantage: 'بررسی تابلو و آثار تصویری دقیق‌تر است و لایه‌های پنهان بصری و انعکاس پنجره زودتر تحلیل می‌شوند.',
+    advantage: 'تحلیل دقیق جزئیات بصری، فرم‌ها و بافت آثار.',
   },
   coffee_alchemist: {
     fa: 'کیمیاگر قهوه',
-    advantage: 'حس بویایی و تحلیل ناهنجاری‌های محیطی قوی‌تر است؛ بوهای شویندهٔ نامتعارف، دانه‌های قهوه و رفتار پنتی سریع‌تر کشف می‌شوند.',
+    advantage: 'شامهٔ تیز، درک اتمسفر و هشدارهای حسی محیط کافه.',
   },
   systems_analyst: {
     fa: 'تحلیلگر سیستم',
-    advantage: 'تحلیل لاگ‌های دوربین، تایم‌استمپ‌ها و یکپارچگی داده‌های دیجیتال دقیق‌تر صورت می‌گیرد.',
+    advantage: 'ذهن ساختاریافته، ردپای داده‌ها و سنجش زمان‌بندی وقایع.',
   },
   investigator: {
     fa: 'کارآگاه',
-    advantage: 'تحلیل تناقض شهادت شاهدان، جعل اسناد و اتصال منطقی شواهد قوی‌تر است.',
+    advantage: 'تحلیل رفتار آدم‌ها، تناقض در گفتار و چیدن پازل شواهد.',
   },
 };
 
-/**
- * Role Selection Menu text (displayed to player in Telegram / CLI).
- */
-export const ROLE_SELECTION_PROMPT = `سه جملهٔ کوتاه روی صفحه بود.
-ناشناس، بدون پروفایل.
-بدون ساعت ارسال.
+export const ROLE_SELECTION_PROMPT = `🎙️ *ناشناس:*
+«این تابلو برای فروش نیست.»
 
-یک پیام.
-یک کافه.
-یک تابلو.
+👤 *سالار صالحی:*
+«کدوم تابلو؟»
 
-قبل از اینکه وارد شوی — کی هستی؟
+🎙️ *ناشناس:*
+«دقیقاً.»
 
-۱. مورخ هنری (Art Historian)
-   ← تحلیل عمیق تابلو، لایه‌های پنهان رنگ و انعکاس‌های بصری
+━━━━━━━━━━━━━━━━━━━━
 
-۲. کیمیاگر قهوه (Coffee Alchemist)
-   ← درک ناهنجاری‌های حسی و محیطی، بوهای شیمیایی و رفتار پنتی
+سه جملهٔ کوتاه، روی صفحهٔ گوشی سالار صالحی.
+بدون شماره. بدون پروفایل. بدون ساعت ارسال.
 
-۳. تحلیلگر سیستم (Systems Analyst)
-   ← خواندن لاگ‌های دوربین، رویدادهای نوشتن دیسک و داده‌های سیستمی
+سالار با صدایی گرفته پشت تلفن فقط یک چیز گفت:
+«باید همین الان بیای پنتیمنتو... پای گذشته و این کافه در میونه.»
 
-۴. کارآگاه (Investigator)
-   ← تحلیل تناقض در شهادت شاهدان، اسناد جعلی و پیوند شواهد
+حالا ساعت ۰۰:۱۷ بامداد است.
+کوچهٔ حسینی، پلاک ۵۵، در سرمای عظیمیه کرج.
 
-برای انتخاب عدد یا نام نقش را بنویس.`;
+قبل از اینکه بری تو — بگو با چه دیدی می‌خوای وارد این ماجرا بشی؟
 
-/**
- * Returns true if the node is complete (player has selected a role).
- */
+۱. 📜 *مورخ هنری (Art Historian)*
+   ← درک زیبایی‌شناسی، جزئیات بصری و دقت روی فرم و بافت اشیاء
+
+۲. ☕ *کیمیاگر قهوه (Coffee Alchemist)*
+   ← شامهٔ تیز، درک اتمسفر و حواس پنج‌گانه در محیط کافه
+
+۳. 💻 *تحلیلگر سیستم (Systems Analyst)*
+   ← ذهن ساختاریافته، تحلیل داده‌ها و ارزیابی زمان‌بندی اتفاقات
+
+۴. 🔍 *کارآگاه (Investigator)*
+   ← روان‌شناسی رفتار آدم‌ها، کشف تناقض در حرف‌ها و چیدن شواهد
+
+━━━━━━━━━━━━━━━━━━━━
+عدد یا اسم نقشت رو بنویس.`;
+
 export function isNode00Complete(playerClass: string | undefined): boolean {
   return playerClass !== undefined && playerClass !== 'observer';
 }

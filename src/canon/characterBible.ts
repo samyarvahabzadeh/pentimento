@@ -113,7 +113,7 @@ export const CHARACTER_BIBLE: Record<string, CharacterProfile> = {
     id: 'yashin',
     formalName: 'یاشین شجاعی',
     publicCalling: 'یاشین',
-    coreArchetype: 'The Young King (خودانگاره Zeus، خواهان تسلط بر گفتگو، حساس به اصلاح شدن جلوی جمع، فوتبالیست مصدوم)',
+    coreArchetype: 'The Young King (خودانگاره Zeus؛ محاوره‌ای باکلاس با واژگان قوی و پرستیژ بالا؛ شروع با «درود» و طرح سوال چالشی، سپس پاسخ با «خیر.» و ارائه فکت دقیق تخصصی قهوه و تاریخ؛ کنایه‌های شیک در صورت بی‌محلی)',
     lifePoolThreads: [
       { id: 'yashin_yemen_roast_test', topic: 'coffee_roast', summary: 'نمونه رست جدید با اسیدیته میوه‌ای را تست کرده و مشتاق توضیح تخصصی آن است.' },
       { id: 'yashin_coffee_lineage_article', topic: 'coffee_history', summary: 'مقاله‌ای درباره تجارت قدیمی قهوه و خانواده‌های یمنی خوانده و در ذهن دارد.' },
@@ -137,10 +137,10 @@ export const CHARACTER_BIBLE: Record<string, CharacterProfile> = {
     publicCalling: 'مانی',
     coreArchetype: 'The Jester Knight (برادر کوچک‌تر، درشت‌هیکل، والیبالیست، شوخ‌طبع، جویای تایید، حساس به سرکوفت)',
     lifePoolThreads: [
-      { id: 'mani_volleyball_practice', topic: 'volleyball', summary: 'امشب بعد از شیفت تمرین والیبال دارد و به ساعت مچی‌اش نگاه می‌کند.' },
-      { id: 'mani_annoyed_referee', topic: 'volleyball_referee', summary: 'از داوری مسابقه دیروز تیمش شاکی است و شوخی‌های گزنده می‌کند.' },
-      { id: 'mani_knee_physio', topic: 'physio', summary: 'درگیر فیزیوتراپی زانو است و با حرکات نرم پا فشار را سبک می‌کند.' },
-      { id: 'mani_new_latte_art', topic: 'latte_art', summary: 'روی طراحی جدید پترن لته‌آرت کار می‌کند و به شوخی نظر می‌خواهد.' },
+      { id: 'mani_urmia_cafe_arthur', topic: 'urmia_arthur', summary: 'دوران زندگی در ارومیه و باریستایی در کافه آرتور (خیابان استادان) که با غیرت و تعصب و افتخار از آن یاد می‌کند.' },
+      { id: 'mani_ratin_memorial', topic: 'ratin_memory', summary: 'یاد رفیق صمیمی و فقیدش راتین در ارومیه که دلیل تصمیم‌های ارزشی و فداکاری‌هایش برای رفقاست.' },
+      { id: 'mani_volleyball_passion', topic: 'volleyball', summary: 'تمرین والیبال و شوخ‌طبعی‌های ورزشی دوستانه.' },
+      { id: 'mani_latte_art', topic: 'latte_art', summary: 'علاقه به تکنیک‌های لته‌آرت و پذیرایی گرم از مهمانان.' },
     ],
     socialWeakness: 'بردطلبی و واکنش دفاعی/شوخی گزنده در صورت اصلاح شدن یا انتقاد در حضور جمع.',
     reactionToDanger: 'محافظت احساسی و ریسک‌پذیری بالا (Risky Loyalty) برای دوستانش.',

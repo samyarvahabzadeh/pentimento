@@ -3,12 +3,12 @@ import * as dotenv from 'dotenv';
 import * as http from 'node:http';
 dotenv.config();
 
-import { v4 as uuidv4 } from 'uuid';
 import { resolvePlayerTurn } from '../core/resolvePlayerTurn.js';
 import { createTransport } from '../transport/transportFactory.js';
-import { getRunByTelegramUser, saveRun, deleteRun } from '../storage/db.js';
+import { getRunByTelegramUser, saveRun, deleteRun, resetAllRuns } from '../storage/db.js';
 import { INTRO_DIALOGUE, ROLE_SELECTION_PROMPT } from '../canon/node00.js';
 import { getCoverPath, getPendingMediaForTurn } from './mediaDispatcher.js';
+import { createInitialRunState } from '../core/initialState.js';
 import type { RunState } from '../core/types.js';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -20,66 +20,78 @@ if (!token) {
 const bot = new Bot(token);
 const transport = createTransport();
 
-console.log(`[Bot] Active provider: ${process.env.ACTIVE_PROVIDER ?? 'groq'}`);
+console.log(`[Bot] Active provider: ${process.env.ACTIVE_PROVIDER ?? 'gemini'}`);
 
-// Per-user debug mode toggle (persists in memory, resets on restart)
+// Per-user debug mode toggle
 const userDebugModes = new Map<number, boolean>();
 
-import { createInitialRunState } from '../core/initialState.js';
+// Per-user turn lock
+const userTurnLocks = new Map<string, Promise<void>>();
 
 function createNewState(): RunState {
   return createInitialRunState();
 }
 
 const roleKeyboard = new Keyboard()
-  .text('1. مورخ هنری 🎨').text('2. کیمیاگر قهوه ☕').row()
-  .text('3. تحلیلگر سیستم 💻').text('4. کارآگاه 🔍')
+  .text('1. مورخ هنری 📜').text('2. کیمیاگر قهوه ☕').row()
+  .text('3. تحلیل‌گر سیستم 💻').text('4. کارآگاه 🔍')
   .resized()
   .oneTime();
 
-/** Canonical intro message: three-line dialogue + role selection menu. */
-function buildIntroMessage(): string {
-  const lines = (INTRO_DIALOGUE as ReadonlyArray<{ speaker: string; text: string }>).map(d => {
-    if (d.speaker === 'Unknown') return `📩 *ناشناس:*\n«${d.text}»`;
-    if (d.speaker === 'Player') return `👤 *تو:*\n«${d.text}»`;
-    return `«${d.text}»`;
-  });
-  return lines.join('\n\n') + '\n\n' + '━━━━━━━━━━━━━━━━━━━━' + '\n\n' + ROLE_SELECTION_PROMPT;
+/** Helper for resilient message sending (falls back to plain text if Markdown fails) */
+async function safeReply(ctx: any, text: string, options: any = {}) {
+  try {
+    return await ctx.reply(text, options);
+  } catch (err: any) {
+    console.warn('[Bot] Reply with options failed, falling back to plain text:', err.message);
+    const plainOptions = { ...options };
+    delete plainOptions.parse_mode;
+    return await ctx.reply(text, plainOptions);
+  }
 }
 
-// ── /start ────────────────────────────────────────────────────────────────────
+/** Canonical intro message: three-line dialogue + role selection menu. */
+function buildIntroMessage(): string {
+  return ROLE_SELECTION_PROMPT;
+}
+
+// Global logger middleware
+bot.use(async (ctx, next) => {
+  const text = ctx.message?.text || ctx.callbackQuery?.data || '[media/action]';
+  console.log(`[Bot] Incoming update (${ctx.from?.id}): ${text}`);
+  await next();
+});
+
+// ─── /start ────────────────────────────────────────────────────────
 bot.command('start', async (ctx) => {
   const userId = ctx.from?.id?.toString();
   if (!userId) return;
 
+  console.log(`[Bot] Handling /start for user ${userId}`);
   const state = createNewState();
   saveRun(state.canonical.runId, userId, state);
 
   const cover = getCoverPath();
   if (cover) {
     try {
-      await ctx.replyWithPhoto(new InputFile(cover), {
-        caption: buildIntroMessage(),
-        parse_mode: 'Markdown',
-        reply_markup: roleKeyboard,
-      });
-      return;
+      await ctx.replyWithPhoto(new InputFile(cover));
     } catch (e: any) {
       console.error('[Bot] Error sending cover photo:', e.message);
     }
   }
 
-  await ctx.reply(buildIntroMessage(), {
+  await safeReply(ctx, buildIntroMessage(), {
     parse_mode: 'Markdown',
     reply_markup: roleKeyboard
   });
 });
 
-// ── /restart ──────────────────────────────────────────────────────────────────
+// ─── /restart ──────────────────────────────────────────────────────
 bot.command('restart', async (ctx) => {
   const userId = ctx.from?.id?.toString();
   if (!userId) return;
 
+  console.log(`[Bot] Handling /restart for user ${userId}`);
   const existing = getRunByTelegramUser(userId);
   if (existing) deleteRun(existing.runId);
 
@@ -90,23 +102,27 @@ bot.command('restart', async (ctx) => {
   if (cover) {
     try {
       await ctx.replyWithPhoto(new InputFile(cover), {
-        caption: '🔄 *ماجراجویی ریست شد.*\n\n' + buildIntroMessage(),
-        parse_mode: 'Markdown',
-        reply_markup: roleKeyboard,
+        caption: '🔄 *ماجرا بازنشانی شد.*',
+        parse_mode: 'Markdown'
       });
-      return;
     } catch (e: any) {
       console.error('[Bot] Error sending cover photo on restart:', e.message);
     }
   }
 
-  await ctx.reply('🔄 *ماجراجویی ریست شد.*\n\n' + buildIntroMessage(), {
+  await safeReply(ctx, buildIntroMessage(), {
     parse_mode: 'Markdown',
     reply_markup: roleKeyboard
   });
 });
 
-// ── /debug ────────────────────────────────────────────────────────────────────
+// ─── /reset_all (Admin Reset) ──────────────────────────────────────
+bot.command('reset_all', async (ctx) => {
+  resetAllRuns();
+  await safeReply(ctx, '🧹 *تمام پروفایل‌های فعال و حافظه تمام بازیکنان با موفقیت ریست شد.*', { parse_mode: 'Markdown' });
+});
+
+// ─── /debug ────────────────────────────────────────────────────────
 bot.command('debug', async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return;
@@ -115,7 +131,7 @@ bot.command('debug', async (ctx) => {
   await ctx.reply(`Debug mode: ${!current ? 'ON 🔍' : 'OFF'}`);
 });
 
-// ── /state ────────────────────────────────────────────────────────────────────
+// ─── /state ────────────────────────────────────────────────────────
 bot.command('state', async (ctx) => {
   const userId = ctx.from?.id?.toString();
   if (!userId) return;
@@ -137,114 +153,108 @@ bot.command('state', async (ctx) => {
     `Entities: ${scene.activeEntityIds.join(', ')}`,
   ].join('\n');
 
-  await ctx.reply(`\`\`\`\n${summary}\n\`\`\``, { parse_mode: 'Markdown' });
+  await safeReply(ctx, `\`\`\`\n${summary}\n\`\`\``, { parse_mode: 'Markdown' });
 });
 
-// ── Text messages → resolvePlayerTurn ─────────────────────────────────────────
+// ─── Text messages -> resolvePlayerTurn ──────────────────────────
 bot.on('message:text', async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return;
 
-  // Skip commands (already handled above)
+  // Skip commands
   if (ctx.message.text.startsWith('/')) return;
 
   const userIdStr = userId.toString();
-  const record = getRunByTelegramUser(userIdStr);
-  if (!record) {
-    await ctx.reply('بازی فعالی وجود ندارد. برای شروع /start را ارسال کنید.');
-    return;
-  }
 
-  try {
-    const result = await resolvePlayerTurn(record.state, ctx.message.text, transport);
-    saveRun(record.runId, userIdStr, result.stateAfter);
-
-    let reply = result.narrative;
-
-    if (userDebugModes.get(userId)) {
-      const dbg = (result as any)._debugInfo ?? {};
-      const out = (result as any)._output ?? {};
-      const effects = result.validation.acceptedSoftEffects;
-      const efStr = effects.length > 0
-        ? effects.map((e: any) => `${e.kind}${e.delta > 0 ? '+' : ''}${e.delta}`).join(', ')
-        : 'none';
-
-      reply += [
-        '',
-        '```',
-        `src: ${result.source}`,
-        `prv: ${dbg.provider ?? '?'} | mdl: ${(dbg.model ?? '?').split('/').pop()}`,
-        `lat: ${dbg.latency ?? 0}ms`,
-        `int: ${result.interpretation.kind}→${result.interpretation.targetId ?? '-'}`,
-        `act: ${result.validation.acceptedActionId ?? 'none'}`,
-        `eff: ${efStr}`,
-        `s/t: ${result.stateBefore.canonical.stress}→${result.stateAfter.canonical.stress} / ${result.stateBefore.canonical.threat}→${result.stateAfter.canonical.threat}`,
-        '```',
-      ].join('\n');
-    }
-
-    const isRoleSelection = record.state.canonical.currentNode === 'NODE_00';
-
-    // Check if any milestone media should be shown for this turn
-    const media = getPendingMediaForTurn(
-      record.state,
-      result.stateAfter,
-      result.validation.acceptedActionId
-    );
-
-    if (media) {
-      saveRun(record.runId, userIdStr, result.stateAfter);
-      try {
-        await ctx.replyWithPhoto(new InputFile(media.mediaPath));
-      } catch (e: any) {
-        console.error('[Bot] Error sending turn photo:', e.message);
+  // Enqueue per-user turn to avoid race conditions
+  const currentLock = userTurnLocks.get(userIdStr) ?? Promise.resolve();
+  const nextLock = currentLock
+    .then(async () => {
+      const record = getRunByTelegramUser(userIdStr);
+      if (!record) {
+        await ctx.reply('بازی فعالی وجود ندارد. برای شروع /start را ارسال کنید.');
+        return;
       }
-    }
 
-    await ctx.reply(reply, {
-      parse_mode: userDebugModes.get(userId) ? 'Markdown' : undefined,
-      reply_markup: isRoleSelection ? { remove_keyboard: true } : undefined,
+      await ctx.replyWithChatAction('typing').catch(() => {});
+
+      try {
+        const result = await resolvePlayerTurn(record.state, ctx.message.text, transport);
+        saveRun(record.runId, userIdStr, result.stateAfter);
+
+        let reply = result.narrative;
+
+        if (userDebugModes.get(userId)) {
+          const dbg = (result as any)._debugInfo ?? {};
+          const effects = result.validation.acceptedSoftEffects;
+          const efStr = effects.length > 0
+            ? effects.map((e: any) => `${e.kind}${e.delta > 0 ? '+' : ''}${e.delta}`).join(', ')
+            : 'none';
+
+          reply += [
+            '',
+            '```',
+            `src: ${result.source}`,
+            `prv: ${dbg.provider ?? '?'} | mdl: ${(dbg.model ?? '?').split('/').pop()}`,
+            `lat: ${dbg.latency ?? 0}ms`,
+            `int: ${result.interpretation.kind}->${result.interpretation.targetId ?? '-'}`,
+            `act: ${result.validation.acceptedActionId ?? 'none'}`,
+            `eff: ${efStr}`,
+            `s/t: ${result.stateBefore.canonical.stress}->${result.stateAfter.canonical.stress} / ${result.stateBefore.canonical.threat}->${result.stateAfter.canonical.threat}`,
+            '```',
+          ].join('\n');
+        }
+
+        const isRoleSelection = record.state.canonical.currentNode === 'NODE_00';
+
+        // Check if any milestone media should be shown
+        const media = getPendingMediaForTurn(
+          record.state,
+          result.stateAfter,
+          result.validation.acceptedActionId
+        );
+
+        if (media) {
+          saveRun(record.runId, userIdStr, result.stateAfter);
+          try {
+            await ctx.replyWithPhoto(new InputFile(media.mediaPath));
+          } catch (e: any) {
+            console.error('[Bot] Error sending turn photo:', e.message);
+          }
+        }
+
+        await safeReply(ctx, reply, {
+          parse_mode: userDebugModes.get(userId) ? 'Markdown' : undefined,
+          reply_markup: isRoleSelection ? { remove_keyboard: true } : undefined,
+        });
+
+      } catch (err: any) {
+        console.error('[Bot] Error processing turn:', err.message);
+        await ctx.reply('خطایی رخ داد. دوباره تلاش کنید.');
+      }
+    })
+    .catch((err) => {
+      console.error('[Bot] Lock chain error:', err);
     });
 
-  } catch (err: any) {
-    console.error('[Bot] Error processing turn:', err.message);
-    await ctx.reply('خطایی رخ داد. دوباره تلاش کنید.');
-  }
+  userTurnLocks.set(userIdStr, nextLock);
+  await nextLock;
 });
 
-// ── Error handler ─────────────────────────────────────────────────────────────
+// ─── Error handler ────────────────────────────────────────────────
 bot.catch((err) => {
   console.error('[Bot] Uncaught error:', err.message);
 });
 
-// ── HTTP Server & Webhook Handler ─────────────────────────────────────────────
-const port = Number(process.env.PORT) || 3000;
-const renderUrl = process.env.RENDER_EXTERNAL_URL || 'https://pentimento-bot.onrender.com';
-const webhookHandler = webhookCallback(bot, 'http');
-
-const server = http.createServer(async (req, res) => {
-  if (req.method === 'POST' && (req.url === '/webhook' || req.url === '/')) {
-    try {
-      await webhookHandler(req, res);
-    } catch (e: any) {
-      console.error('[Bot] Webhook error:', e.message);
-      if (!res.headersSent) {
-        res.writeHead(500);
-        res.end('Webhook Error');
-      }
-    }
-    return;
-  }
-  res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-  res.end('Pentimento Telegram Bot is running live.');
-});
-
-server.listen(port, '0.0.0.0', async () => {
-  console.log(`[Bot] Server listening on 0.0.0.0:${port}`);
-  try {
-    await bot.api.setWebhook(`${renderUrl}/webhook`);
-    console.log(`[Bot] Webhook active on: ${renderUrl}/webhook`);
-  } catch (e: any) {
-    console.error('[Bot] Webhook setup note:', e.message);
-  }
+// ─── Launcher ─────────────────────────────────────────────────────
+console.log('[Bot] Initializing Telegram Long Polling...');
+bot.api.deleteWebhook({ drop_pending_updates: true }).then(() => {
+  console.log('[Bot] Webhook deleted & old pending updates dropped.');
+  return bot.start({
+    onStart: (botInfo) => {
+      console.log(`[Bot] ✅ @${botInfo.username} is running live via Long Polling!`);
+    },
+  });
+}).catch((err) => {
+  console.error('[Bot] Startup error:', err.message);
 });

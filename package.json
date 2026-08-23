@@ -28,6 +28,7 @@
     "models:list": "tsx src/transport/listModels.ts",
     "bot": "tsx src/telegram/bot.ts",
     "probe": "tsx src/transport/probe.ts",
+    "reset:db": "tsx src/storage/resetDb.ts",
     "start": "tsx src/telegram/bot.ts",
     "build": "tsc"
   },

@@ -7,15 +7,20 @@ export const NODE_11_STRICTNESS: Record<string, ObjectGroundingStrictness> = {
 };
 
 export const NODE_11_ALLOWED_ACTIONS: CanonicalActionId[] = [
-  'APPROACH_OFFICE',
-  'EXAMINE_OFFICE_LEDGER',
-  'EXAMINE_INVOICE_RG_LOT55',
-  'COMPARE_OFFICE_INVOICES',
-  'ASK_SALAR_ABOUT_INVOICE',
   'ANALYZE_INVOICE_FORGERY',
+  'APPROACH_COUNTER',
+  'APPROACH_GALLERY',
+  'APPROACH_OFFICE',
+  'APPROACH_PENTI_AREA',
+  'APPROACH_SECURITY_DESK',
+  'APPROACH_STORAGE',
+  'ASK_SALAR_ABOUT_INVOICE',
+  'COMPARE_OFFICE_INVOICES',
+  'EXAMINE_INVOICE_RG_LOT55',
+  'EXAMINE_OFFICE_LEDGER',
+  'EXIT_CAFE_TO_ALLEY',
   'PROPOSE_THEORY',
   'RETURN_TO_TABLE_5',
-  'APPROACH_COUNTER',
 ];
 
 export const NODE_11_FACTS = [
@@ -39,7 +44,7 @@ export const NODE_11_FACTS = [
 
 export const NODE_11_INITIAL_STATE = {
   description: `دفتر حسابداری کافه پنتیمنتو؛ فضایی آرام و منظم با قفسه‌های زونکن، پرونده‌های مالی و میز کار آقای صالحی.
-آقای صالحی با عینکی با فریم باریک پشت میز نشسته و به دفتر کل نگاه می‌کند.`,
+آقای صالحی با نگاهی نافذ و آرام پشت میز نشسته و به دفتر کل نگاه می‌کند.`,
 
   activeEntityIds: ['salar_salehi'] as string[],
   visibleObjectIds: ['invoice_rg_lot55', 'office_ledgers', 'office_desk'] as string[],

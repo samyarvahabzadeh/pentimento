@@ -53,21 +53,33 @@ export const MEDIA_TRIGGERS: MediaTrigger[] = [
       after.scene.establishedFactIds.includes('fact_haniyeh_witness'),
   },
 
-  // 4. Bar Counter & Yashin (Node 03 / Node 05)
+  // 4. Bar Counter (Node 03)
+  {
+    mediaKey: 'media_bg_bar',
+    filename: 'BG_BAR.png',
+    condition: (before, after, act) =>
+      act === 'APPROACH_COUNTER' ||
+      (before.canonical.currentNode === 'NODE_02' && after.canonical.currentNode === 'NODE_03'),
+  },
+
+  // 4b. Yashin Shojaee (Specific interaction with Yashin)
   {
     mediaKey: 'media_yashin',
     filename: 'NPC_YASHIN.png',
     condition: (before, after, act) =>
       act === 'TALK_TO_YASHIN' ||
-      act === 'APPROACH_COUNTER' ||
-      after.canonical.currentNode === 'NODE_03' ||
-      after.canonical.currentNode === 'NODE_05',
+      act === 'ASK_YASHIN_ABOUT_ROAST' ||
+      act === 'ASK_YASHIN_TO_SMELL_OBJECT',
   },
+
+  // 4c. Mani Shojaee (Specific interaction with Mani)
   {
-    mediaKey: 'media_bg_bar',
-    filename: 'BG_BAR.png',
-    condition: (before, after) =>
-      before.canonical.currentNode === 'NODE_02' && after.canonical.currentNode === 'NODE_03',
+    mediaKey: 'media_mani',
+    filename: 'NPC_MANI.png',
+    condition: (before, after, act) =>
+      act === 'TALK_TO_MANI' ||
+      act === 'ASK_MANI_ABOUT_LABEL' ||
+      act === 'TALK_TO_MANI_ABOUT_VOLLEYBALL',
   },
 
   // 5. Salar Salehi (Node 04 / Node 10 / Node 11)
@@ -78,8 +90,7 @@ export const MEDIA_TRIGGERS: MediaTrigger[] = [
       act === 'TALK_TO_SALAR' ||
       act === 'CONFRONT_SALAR' ||
       act === 'ENTER_OFFICE' ||
-      after.canonical.currentNode === 'NODE_04' ||
-      after.canonical.currentNode === 'NODE_10' ||
+      act === 'ASK_SALAR_ABOUT_INVOICE' ||
       after.canonical.currentNode === 'NODE_11',
   },
 
@@ -99,17 +110,6 @@ export const MEDIA_TRIGGERS: MediaTrigger[] = [
       act === 'EXAMINE_WINDOW_REFLECTION' ||
       after.canonical.evidenceIds.includes('underpaint_line_visible') ||
       after.canonical.currentNode === 'NODE_18',
-  },
-
-  // 7. Mani Shojaee (Node 07 / Node 15)
-  {
-    mediaKey: 'media_mani',
-    filename: 'NPC_MANI.png',
-    condition: (before, after, act) =>
-      act === 'TALK_TO_MANI' ||
-      act === 'ASK_MANI_ABOUT_LABEL' ||
-      act === 'TALK_TO_MANI_ABOUT_VOLLEYBALL' ||
-      after.canonical.currentNode === 'NODE_07',
   },
 
   // 8. Basement / Storage (Node 08)
@@ -195,6 +195,8 @@ export function getPendingMediaForTurn(
 }
 
 export function getCoverPath(): string | null {
-  const p = path.join(MEDIA_DIR, 'COVER_MAIN.png');
-  return fs.existsSync(p) ? p : null;
+  const cover = path.join(MEDIA_DIR, 'COVER_MAIN.png');
+  if (fs.existsSync(cover)) return cover;
+  const entrance = path.join(MEDIA_DIR, 'BG_ENTRANCE.png');
+  return fs.existsSync(entrance) ? entrance : null;
 }

@@ -331,6 +331,8 @@ export interface DirectorOutput {
 export interface SceneBeat {
   turn: number;
   summary: string;
+  playerInput?: string;
+  narrative?: string;
   actors: string[];
   topics: string[];
   importance: 1 | 2 | 3 | 4 | 5;
@@ -421,7 +423,7 @@ export interface AudioLossState {
   heardFragment: string;
 }
 
-// ── Investigation Depth System ──
+// ─── Investigation Depth System ──────────────────────────────────
 export type ObservationFocus =
   | 'general'
   | 'surface_texture'
@@ -461,7 +463,7 @@ export interface InvestigationResult {
   newlyUnlockedFactIds: string[];
 }
 
-// ── Ending Resolver & Multi-Dimensional Profile System ──
+// ─── Ending Resolver & Multi-Dimensional Profile System ──────────
 export type EndingId =
   | 'TRUE_ENDING'
   | 'THE_PRICE'
@@ -540,6 +542,16 @@ export interface ResolvedTurn {
   stateAfter: RunState;
 }
 
+export interface ActiveNpcPersona {
+  id: string;
+  formalName: string;
+  publicCalling: string;
+  archetype: string;
+  currentLifeThreads: string[];
+  socialWeakness: string;
+  reactionToDanger: string;
+}
+
 export interface DirectorContext {
   worldRules: string[];
   scene: SceneState;
@@ -550,6 +562,7 @@ export interface DirectorContext {
     impressions: string[];
     commitments: string[];
   }>;
+  activeNpcPersonas?: ActiveNpcPersona[];
   relevantFacts: Array<{ id: string; text: string }>;
   activeRunFlavors: RunFlavor[];
   scheduledAmbientBeat?: ScheduledAmbientBeat;

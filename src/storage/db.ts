@@ -107,6 +107,18 @@ export function deleteRun(runId: string): void {
   d.prepare('DELETE FROM memories WHERE runId = ?').run(runId);
 }
 
+export function resetAllRuns(): void {
+  const d = getDb();
+  if (!d) {
+    memRuns.clear();
+    memEvents.length = 0;
+    return;
+  }
+  d.prepare('DELETE FROM runs').run();
+  d.prepare('DELETE FROM events').run();
+  d.prepare('DELETE FROM memories').run();
+}
+
 export function appendEventToDb(id: string, runId: string, type: string, turn: number, data: object): void {
   const d = getDb();
   if (!d) {
@@ -118,3 +130,4 @@ export function appendEventToDb(id: string, runId: string, type: string, turn: n
     VALUES (?, ?, ?, ?, ?)
   `).run(id, runId, type, turn, JSON.stringify(data));
 }
+

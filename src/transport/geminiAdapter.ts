@@ -13,13 +13,16 @@ import { buildSystemPrompt, buildUserPrompt } from '../director/directorPrompt.j
 
 export class GeminiAdapter implements LLMTransport {
   private readonly apiKey: string;
-  private readonly model: string;
   private readonly baseUrl: string;
+  private readonly candidateModels: string[];
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY ?? '';
-    this.model = process.env.GEMINI_MODEL ?? 'gemini-3.6-flash';
     this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+
+    const preferred = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash-lite';
+    const fallbackList = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.7-flash'];
+    this.candidateModels = Array.from(new Set([preferred, ...fallbackList])).filter(Boolean);
 
     if (!this.apiKey) {
       console.warn('[GeminiAdapter] WARNING: GEMINI_API_KEY not set');
@@ -30,41 +33,38 @@ export class GeminiAdapter implements LLMTransport {
     const system = buildSystemPrompt();
     const user = buildUserPrompt(context);
 
-    let attempts = 0;
-    let result = await this.callOnce(system, user);
-    while (result.shouldRetry && attempts < 3) {
-      attempts++;
-      const match = result.failReason.match(/wait ([0-9]+)s/);
-      const waitMs = match ? parseInt(match[1], 10) * 1000 : 25000;
-      console.warn(`[GeminiAdapter] Retry (${attempts}/3) waiting ${waitMs / 1000}s after: ${result.failReason}`);
-      await new Promise(r => setTimeout(r, waitMs));
-      result = await this.callOnce(system, user);
+    let lastError = 'No models tried';
+
+    for (const model of this.candidateModels) {
+      try {
+        const result = await this.callModel(model, system, user);
+        if (result && result.rawText) {
+          return {
+            provider: 'gemini',
+            model,
+            latencyMs: result.latencyMs,
+            rawText: result.rawText,
+          };
+        }
+      } catch (err: any) {
+        lastError = `[${model}] ${err.message}`;
+        console.warn(`[GeminiAdapter] Model ${model} failed: ${err.message}`);
+      }
     }
 
-    if (!result.rawText) {
-      throw new Error(`[GeminiAdapter] All attempts failed — last error: ${result.failReason}`);
-    }
-
-    return {
-      provider: 'gemini',
-      model: this.model,
-      latencyMs: result.latencyMs,
-      rawText: result.rawText,
-    };
+    throw new Error(`[GeminiAdapter] All candidate models failed — last error: ${lastError}`);
   }
 
-  private async callOnce(system: string, user: string): Promise<{
-    rawText: string | null;
+  private async callModel(model: string, system: string, user: string): Promise<{
+    rawText: string;
     latencyMs: number;
-    shouldRetry: boolean;
-    failReason: string;
-  }> {
+  } | null> {
     const start = Date.now();
-    try {
-      const url = `${this.baseUrl}/models/${this.model}:generateContent?key=${this.apiKey}`;
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 30_000);
+    const url = `${this.baseUrl}/models/${model}:generateContent?key=${this.apiKey}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12_000);
 
+    try {
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,42 +83,31 @@ export class GeminiAdapter implements LLMTransport {
       clearTimeout(timer);
       const latencyMs = Date.now() - start;
 
-      if (res.status === 401 || res.status === 403 || res.status === 404) {
-        return { rawText: null, latencyMs, shouldRetry: false, failReason: `HTTP ${res.status}` };
-      }
-      if (res.status === 429) {
-        const body = await res.text().catch(() => '');
-        const match = body.match(/retry in ([0-9.]+)s/i);
-        const waitSec = match ? Math.ceil(parseFloat(match[1])) + 5 : 30;
-        return { rawText: null, latencyMs, shouldRetry: true, failReason: `429 rate-limited (wait ${waitSec}s)` };
-      }
-      if (res.status === 503) {
-        return { rawText: null, latencyMs, shouldRetry: true, failReason: `503 model temporarily busy (wait 15s)` };
-      }
       if (!res.ok) {
-        const body = await res.text().catch(() => '');
-        return { rawText: null, latencyMs, shouldRetry: true, failReason: `HTTP ${res.status}: ${body.slice(0, 80)}` };
+        const bodyText = await res.text().catch(() => '');
+        let errMsg = `HTTP ${res.status}`;
+        try {
+          errMsg = JSON.parse(bodyText)?.error?.message ?? errMsg;
+        } catch {}
+        console.warn(`[GeminiAdapter] ${model} returned ${res.status}: ${errMsg.slice(0, 100)}`);
+        return null;
       }
 
-      const data = await res.json() as any;
+      const data = (await res.json()) as any;
       const rawText: string = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
 
       if (!rawText || rawText.trim().length === 0) {
-        const reason = data?.candidates?.[0]?.finishReason ?? 'empty';
-        return { rawText: null, latencyMs, shouldRetry: true, failReason: `empty content (${reason})` };
+        console.warn(`[GeminiAdapter] ${model} returned empty content`);
+        return null;
       }
 
-      return { rawText, latencyMs, shouldRetry: false, failReason: '' };
-
+      return { rawText, latencyMs };
     } catch (e: any) {
-      const latencyMs = Date.now() - start;
+      clearTimeout(timer);
       const isTimeout = e.name === 'AbortError' || e.message?.includes('abort');
-      return {
-        rawText: null,
-        latencyMs,
-        shouldRetry: isTimeout,
-        failReason: isTimeout ? 'timeout' : e.message?.slice(0, 80) ?? 'unknown',
-      };
+      console.warn(`[GeminiAdapter] ${model} exception: ${isTimeout ? 'timeout (12s)' : e.message}`);
+      return null;
     }
   }
 }
+

@@ -13,18 +13,53 @@ import { GroqAdapter } from './groqAdapter.js';
 import { GeminiAdapter } from './geminiAdapter.js';
 import { OrcaRouterAdapter } from './orcaRouterAdapter.js';
 
-export function createTransport(): LLMTransport {
-  const provider = (process.env.ACTIVE_PROVIDER ?? 'groq').toLowerCase().trim();
+class ResilientCompositeTransport implements LLMTransport {
+  private transports: LLMTransport[];
 
-  switch (provider) {
-    case 'groq':
-      return new GroqAdapter();
-    case 'gemini':
-      return new GeminiAdapter();
-    case 'orcarouter':
-      return new OrcaRouterAdapter();
-    default:
-      console.warn(`[transportFactory] Unknown provider "${provider}", defaulting to groq`);
-      return new GroqAdapter();
+  constructor(transports: LLMTransport[]) {
+    this.transports = transports;
+  }
+
+  async generateDirectorOutput(context: any) {
+    let lastError: Error | null = null;
+
+    for (const transport of this.transports) {
+      try {
+        return await transport.generateDirectorOutput(context);
+      } catch (err: any) {
+        lastError = err;
+        console.warn(`[Transport] Provider failed: ${err.message}. Trying next fallback...`);
+      }
+    }
+
+    throw lastError ?? new Error('[Transport] All providers failed');
   }
 }
+
+export function createTransport(): LLMTransport {
+  const provider = (process.env.ACTIVE_PROVIDER ?? 'gemini').toLowerCase().trim();
+
+  const gemini = new GeminiAdapter();
+  const groq = new GroqAdapter();
+  const orca = new OrcaRouterAdapter();
+
+  let orderedTransports: LLMTransport[] = [];
+
+  switch (provider) {
+    case 'gemini':
+      orderedTransports = [gemini, groq, orca];
+      break;
+    case 'groq':
+      orderedTransports = [groq, gemini, orca];
+      break;
+    case 'orcarouter':
+      orderedTransports = [orca, gemini, groq];
+      break;
+    default:
+      orderedTransports = [gemini, groq, orca];
+      break;
+  }
+
+  return new ResilientCompositeTransport(orderedTransports);
+}
+

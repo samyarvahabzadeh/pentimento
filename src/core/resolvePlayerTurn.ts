@@ -1,3 +1,5 @@
+import { NODE_01_INITIAL_STATE } from '../canon/node01.js';
+import { ROLE_DESCRIPTIONS } from '../canon/node00.js';
 import { RunState, ResolvedTurn } from './types.js';
 import { buildContext } from './contextBuilder.js';
 import type { LLMTransport } from '../transport/llmTransport.js';
@@ -210,6 +212,17 @@ export async function resolvePlayerTurn(
 
   // Apply state changes via GameEngine (including deterministic physical attempt resolver & audio loss & investigation depth)
   applyValidatedTurn(state, validation, output.interpretation, output.narrative, playerInput);
+
+  // If transitioning from NODE_00 (Role Selection) into NODE_01 (Opening Entrance Encounter)
+  if (stateBefore.canonical.currentNode === 'NODE_00' && state.canonical.currentNode === 'NODE_01') {
+    const roleKey = state.canonical.playerClass ?? 'art_historian';
+    const roleFa = (ROLE_DESCRIPTIONS as any)[roleKey]?.fa ?? 'مورخ هنری';
+    const openingProse = `با تخصص «${roleFa}»، قدم به کوچهٔ حسینی می‌گذاری.\n\n${NODE_01_INITIAL_STATE.openingNarrative}`;
+    output.narrative = openingProse;
+    if (state.scene.recentBeats.length > 0) {
+      state.scene.recentBeats[state.scene.recentBeats.length - 1].narrative = openingProse;
+    }
+  }
 
   // 5. Memory compilation (only for director-produced candidates)
   if (output.memoryCandidates && output.memoryCandidates.length > 0) {

@@ -1,4 +1,5 @@
-import { RunState, DirectorContext, CanonicalActionId, RunFlavor } from './types.js';
+import { RunState, DirectorContext, CanonicalActionId, RunFlavor, ActiveNpcPersona } from './types.js';
+import { CHARACTER_BIBLE } from '../canon/characterBible.js';
 import { NODE_00_ALLOWED_ACTIONS, ROLE_SELECTION_PROMPT } from '../canon/node00.js';
 import { NODE_01_ALLOWED_ACTIONS, NODE_01_FACTS } from '../canon/node01.js';
 import { NODE_02_ALLOWED_ACTIONS, NODE_02_FACTS } from '../canon/node02.js';
@@ -174,6 +175,24 @@ export function buildContext(state: RunState, playerInput: string): DirectorCont
     }
   }
 
+  // Active NPC rich personas from Character Bible
+  const activeNpcPersonas: ActiveNpcPersona[] = [];
+  for (const rawId of state.scene.activeEntityIds) {
+    const normId = rawId === 'mehri' ? 'arian_mehri' : (rawId === 'arian_garshasbi' ? 'arian_g' : rawId);
+    const profile = CHARACTER_BIBLE[normId] || CHARACTER_BIBLE[rawId];
+    if (profile) {
+      activeNpcPersonas.push({
+        id: profile.id,
+        formalName: profile.formalName,
+        publicCalling: profile.publicCalling,
+        archetype: profile.coreArchetype,
+        currentLifeThreads: profile.lifePoolThreads.map(t => `${t.topic}: ${t.summary}`),
+        socialWeakness: profile.socialWeakness,
+        reactionToDanger: profile.reactionToDanger,
+      });
+    }
+  }
+
   // Active Run Flavors for present entities
   const activeRunFlavors: RunFlavor[] = [];
   if (state.runFlavor) {
@@ -287,6 +306,7 @@ export function buildContext(state: RunState, playerInput: string): DirectorCont
     scene: state.scene,
     canonical: state.canonical,
     activeNpcKnowledge,
+    activeNpcPersonas,
     relevantFacts,
     activeRunFlavors,
     scheduledAmbientBeat,

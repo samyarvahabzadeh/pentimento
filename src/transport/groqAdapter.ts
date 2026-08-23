@@ -13,12 +13,15 @@ import { buildSystemPrompt, buildUserPrompt } from '../director/directorPrompt.j
 export class GroqAdapter implements LLMTransport {
   private readonly apiKey: string;
   private readonly baseUrl: string;
-  private readonly model: string;
+  private readonly candidateModels: string[];
 
   constructor() {
     this.apiKey = process.env.GROQ_API_KEY ?? '';
     this.baseUrl = (process.env.GROQ_BASE_URL ?? 'https://api.groq.com/openai/v1').replace(/\/$/, '');
-    this.model = process.env.GROQ_MODEL ?? 'qwen/qwen3.6-27b';
+    
+    const preferred = process.env.GROQ_MODEL ?? 'openai/gpt-oss-120b';
+    const fallbackList = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.6-27b'];
+    this.candidateModels = Array.from(new Set([preferred, ...fallbackList])).filter(Boolean);
 
     if (!this.apiKey) {
       console.warn('[GroqAdapter] WARNING: GROQ_API_KEY not set');
@@ -29,23 +32,23 @@ export class GroqAdapter implements LLMTransport {
     const system = buildSystemPrompt();
     const user = buildUserPrompt(context);
 
-    // Try once — one retry only if timeout/empty/malformed (not on auth/rate errors)
-    let result = await this.callOnce(this.model, system, user);
-    if (result.shouldRetry) {
-      console.warn(`[GroqAdapter] Retry after: ${result.failReason}`);
-      result = await this.callOnce(this.model, system, user);
+    let lastError = 'No models tried';
+
+    for (const model of this.candidateModels) {
+      const result = await this.callOnce(model, system, user);
+      if (result.rawText) {
+        return {
+          provider: 'groq',
+          model: result.model,
+          latencyMs: result.latencyMs,
+          rawText: result.rawText,
+        };
+      }
+      lastError = `[${model}] ${result.failReason}`;
+      console.warn(`[GroqAdapter] Model ${model} failed: ${result.failReason}`);
     }
 
-    if (!result.rawText) {
-      throw new Error(`[GroqAdapter] Both attempts failed — last error: ${result.failReason}`);
-    }
-
-    return {
-      provider: 'groq',
-      model: result.model,
-      latencyMs: result.latencyMs,
-      rawText: result.rawText,
-    };
+    throw new Error(`[GroqAdapter] All candidate models failed — last error: ${lastError}`);
   }
 
   private async callOnce(model: string, system: string, user: string): Promise<{

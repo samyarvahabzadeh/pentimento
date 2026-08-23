@@ -4,3 +4,8 @@ dist/
 *.db
 *.db-wal
 *.db-shm
+*.log
+scratch_audit_results.json
+scratch/
+telegram_playtest_user.session
+auth_state.json

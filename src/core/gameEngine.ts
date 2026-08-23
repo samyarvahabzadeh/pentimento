@@ -1181,10 +1181,12 @@ export function applyValidatedTurn(
     }
   }
 
-  // 6. Record scene beat
+  // 6. Record scene beat with full player input and narrative for continuity
   const beat: SceneBeat = {
     turn: state.scene.turn,
     summary: narrative.substring(0, 120) + (narrative.length > 120 ? '...' : ''),
+    playerInput: playerInput ? playerInput.trim() : undefined,
+    narrative: narrative.trim(),
     actors: ['player'],
     topics: [],
     importance: (validation.acceptedActionId || interpretation.kind === 'physical' || interpretation.kind === 'theory') ? 3 : 1,

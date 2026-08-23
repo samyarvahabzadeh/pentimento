@@ -6,15 +6,21 @@ export const NODE_06_STRICTNESS: Record<string, ObjectGroundingStrictness> = {
 };
 
 export const NODE_06_ALLOWED_ACTIONS: CanonicalActionId[] = [
-  'EXAMINE_PAINTING_GENERAL',
-  'EXAMINE_PAINTING_CLOSE_SURFACE',
-  'EXAMINE_PAINTING_ANGLED_LIGHT',
   'ANALYZE_PAINTING_ART_HISTORIAN',
-  'ASK_NPC_ABOUT_PAINTING',
-  'TOUCH_OR_SCRAPE_PAINTING',
-  'INSPECT_BEHIND_PAINTING',
   'APPROACH_COUNTER',
+  'APPROACH_GALLERY',
+  'APPROACH_OFFICE',
+  'APPROACH_PENTI_AREA',
+  'APPROACH_SECURITY_DESK',
+  'APPROACH_STORAGE',
+  'ASK_NPC_ABOUT_PAINTING',
+  'EXAMINE_PAINTING_ANGLED_LIGHT',
+  'EXAMINE_PAINTING_CLOSE_SURFACE',
+  'EXAMINE_PAINTING_GENERAL',
+  'EXIT_CAFE_TO_ALLEY',
+  'INSPECT_BEHIND_PAINTING',
   'RETURN_TO_TABLE_5',
+  'TOUCH_OR_SCRAPE_PAINTING',
 ];
 
 export const NODE_06_FACTS = [
@@ -43,7 +49,7 @@ export const NODE_06_INITIAL_STATE = {
 تابلوی نقاشی روی دیوار انتهای سالن نصب است.
 نور سالن روی سطح تابلو می‌تابد.`,
 
-  activeEntityIds: ['mani'] as string[],
+  activeEntityIds: [] as string[],
   visibleObjectIds: ['gallery_wall', 'central_painting', 'frame'] as string[],
   canonFacts: NODE_06_FACTS,
 };

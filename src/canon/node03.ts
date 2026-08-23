@@ -1,12 +1,18 @@
 import type { CanonicalActionId } from '../core/types.js';
 
 export const NODE_03_ALLOWED_ACTIONS: CanonicalActionId[] = [
-  'TALK_TO_YASHIN',
-  'TALK_TO_MANI',
+  'APPROACH_COUNTER',
+  'APPROACH_GALLERY',
+  'APPROACH_OFFICE',
+  'APPROACH_PENTI_AREA',
+  'APPROACH_SECURITY_DESK',
+  'APPROACH_STORAGE',
   'CHECK_POS_ORDERS',
   'EXAMINE_ESPRESSO_MACHINE',
-  'APPROACH_GALLERY',
+  'EXIT_CAFE_TO_ALLEY',
   'RETURN_TO_TABLE_5',
+  'TALK_TO_MANI',
+  'TALK_TO_YASHIN',
 ];
 
 export const NODE_03_FACTS = [

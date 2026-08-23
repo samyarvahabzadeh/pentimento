@@ -7,12 +7,20 @@ export const NODE_07_STRICTNESS: Record<string, ObjectGroundingStrictness> = {
 };
 
 export const NODE_07_ALLOWED_ACTIONS: CanonicalActionId[] = [
+  'APPROACH_COUNTER',
+  'APPROACH_GALLERY',
+  'APPROACH_OFFICE',
+  'APPROACH_PENTI_AREA',
+  'APPROACH_SECURITY_DESK',
+  'APPROACH_STORAGE',
+  'ASK_NPC_ABOUT_LABEL',
+  'EXAMINE_BACK_LABEL',
+  'EXIT_CAFE_TO_ALLEY',
   'INSPECT_BEHIND_PAINTING',
   'LIFT_PAINTING_CAREFULLY',
-  'EXAMINE_BACK_LABEL',
-  'PROPOSE_THEORY',
   'PEEL_REMAINING_LABEL',
-  'ASK_NPC_ABOUT_LABEL',
+  'PROPOSE_THEORY',
+  'RETURN_TO_TABLE_5',
 ];
 
 export const NODE_07_FACTS = [
@@ -33,8 +41,8 @@ export const NODE_07_FACTS = [
     text: 'روی بخش باقی‌ماندهٔ برچسب، تنها این اعداد سالم مانده‌اند: «14 / 3 / 7 / 55».',
   },
   {
-    id: 'fact_mani_volleyball_subtext',
-    text: 'مانی در حالی که زانوی آسیب‌دیده‌اش را ماساژ می‌دهد، از بازی والیبال دیروز می‌گوید اما نگاهش نگران به ساعت مچی‌اش می‌افتد: «استادم می‌گفت وقتی زانوت تیر می‌کشه یعنی دیر رسیدی... امشبم فکر می‌کردم ساعت هنوز یازده و ربع نشده و وقت دارم در پشتی رو ببندم، ولی این ساعت همیشه وقتی مهمه بازی درمیاره.»',
+    id: 'fact_label_transfer_trace',
+    text: 'اعداد روی برچسب (14 / 3 / 7 / 55) با جوهر کهنه ثبت شده‌اند و توالی یک زنجیره انتقال مالکیتی را نشان می‌دهند.',
   },
 ];
 
@@ -43,7 +51,7 @@ export const NODE_07_INITIAL_STATE = {
 قاب تابلو کمی از دیوار فاصله گرفته است.
 یک برچسب کاغذی قدیمی و کنده شده در پشت بوم به چشم می‌خورد.`,
 
-  activeEntityIds: ['mani'] as string[],
+  activeEntityIds: [] as string[],
   visibleObjectIds: ['back_of_canvas', 'frame_edge', 'torn_label', 'label_numbers'] as string[],
   canonFacts: NODE_07_FACTS,
 };
