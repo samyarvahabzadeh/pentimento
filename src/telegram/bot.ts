@@ -170,11 +170,13 @@ bot.on('message:text', async (ctx) => {
   const currentLock = userTurnLocks.get(userIdStr) ?? Promise.resolve();
   const nextLock = currentLock
     .then(async () => {
-      const record = getRunByTelegramUser(userIdStr);
+      let record = getRunByTelegramUser(userIdStr);
       if (!record) {
-        await ctx.reply('بازی فعالی وجود ندارد. برای شروع /start را ارسال کنید.');
-        return;
+        const state = createNewState();
+        saveRun(state.canonical.runId, userIdStr, state);
+        record = { runId: state.canonical.runId, state };
       }
+
 
       await ctx.replyWithChatAction('typing').catch(() => {});
 

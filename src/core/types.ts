@@ -470,7 +470,13 @@ export type EndingId =
   | 'BROTHERS'
   | 'ESPRESSO'
   | 'EXPOSURE'
-  | 'WRONG_MAN';
+  | 'WRONG_MAN'
+  // Disastrous Branching Endings (Re:Zero Style Bad Endings)
+  | 'BAD_ENDING_TOXIC_SHOCK'
+  | 'BAD_ENDING_PSYCH_HOLD'
+  | 'BAD_ENDING_COLD_EXPULSION'
+  | 'BAD_ENDING_POLICE_SHUTDOWN';
+
 
 export interface PreservationProfile {
   peoplePreservation: number;     // 0 - 100

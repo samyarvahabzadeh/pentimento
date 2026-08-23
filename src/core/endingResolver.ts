@@ -191,8 +191,24 @@ export function resolveEnding(state: RunState): EndingEvaluationResult {
   let wrongManVariant: 'accidental_suspicion' | 'destructive_false_accusation' | undefined;
   let vetoApplied: string | undefined;
 
+  // ── PRIORITY 0: Fatal & Disastrous Branching Endings (Re:Zero Style Bad Endings) ──
+  if (flags.includes('drank_lethal_solvent') || state.canonical.stress >= 95 && flags.includes('poison_symptoms_ignored')) {
+    endingId = 'BAD_ENDING_TOXIC_SHOCK';
+    reasons.push('بازیکن مایع سمی حلال شیمیایی را نوشید و علائم بحرانی مسمومیت نادیده گرفته شد.');
+  } else if (flags.includes('severe_self_harm') || state.canonical.stress >= 90 && flags.includes('physical_breakdown')) {
+    endingId = 'BAD_ENDING_PSYCH_HOLD';
+    reasons.push('فروپاشی کامل روانی، خودزنی و آسیب جسمی شدید موجب مداخله فیزیکی پرسنل و انتقال با آمبولانس شد.');
+  } else if (flags.includes('assaulted_staff') || flags.includes('threatened_violence_weapon')) {
+    endingId = 'BAD_ENDING_POLICE_SHUTDOWN';
+    reasons.push('درگیری فیزیکی، تهدید پرسنل یا تخریب کافه موجب حضور فوری پلیس و پلمپ کافه شد.');
+  } else if (flags.includes('expelled_permanently') || (state.canonical.threat >= 85 && trustScore <= 15)) {
+    endingId = 'BAD_ENDING_COLD_EXPULSION';
+    reasons.push('بی‌اعتمادی مطلق و رفتار تخریبی موجب اخراج خشن بازیکن و قفل شدن درهای کافه در سرمای نیمه‌شب شد.');
+  }
+
   // ── PRIORITY 1: Hard Veto — Financial Settlement (THE_PRICE) ──
-  if (flags.includes('accepted_financial_offer')) {
+  else if (flags.includes('accepted_financial_offer')) {
+
     endingId = 'THE_PRICE';
     vetoApplied = 'accepted_financial_offer';
     if (truthDiscovery >= 70 && truthInterpretation >= 60) {
@@ -378,5 +394,41 @@ ENDING: EXPOSURE`;
 ENDING: WRONG MAN`;
   }
 
+  // ── 7. BAD_ENDING_TOXIC_SHOCK (مسمومیت کشنده) ──
+  if (endingId === 'BAD_ENDING_TOXIC_SHOCK') {
+    return `چشمانت سیاهی رفت و سوزش تند حلال صنعتی، مجاری تنفسی و معده‌ات را در بر گرفت.
+صدای فریاد حانیه، سقوط فنجان روی سنگ‌فرش و دستپاچگی مانی برای آوردن آب آخرین صداهایی بود که شنیدی.
+چراغ‌های گردان آمبولانس در مه نیمه‌شب عظیمیه تابیدند.
+پرونده پنتیمنتو برای همیشه در اورژانس مسمومیت‌های کرج مدفون شد؛ بی‌آنکه بدانی چه رازی پشت تابلوی ۵۵ خوابیده بود.
+💀 BAD ENDING: TOXIC SHOCK (مسمومیت کشنده)`;
+  }
+
+  // ── 8. BAD_ENDING_PSYCH_HOLD (فروپاشی و خودزنی) ──
+  if (endingId === 'BAD_ENDING_PSYCH_HOLD') {
+    return `کوبیدن مکرر سر بر چوب سرد پیشخوان و جریان خون، سالن را در شوک و بهت فرو برد.
+مانی و آرین از پشت کانتر دویدند و دستانت را مهار کردند، در حالی که یاشین با شماره ۱۱۵ تماس می‌گرفت.
+تنش و جنون نیمه‌شب، حقیقت را در میان آژیر اورژانس و باندپیچی‌های اضطراری گم کرد.
+تو پیش از گشودن رمز کافه، تسلیم تاریکی ذهن خود شدی.
+💀 BAD ENDING: PSYCHIATRIC HOLD (فروپاشی روانی)`;
+  }
+
+  // ── 9. BAD_ENDING_POLICE_SHUTDOWN (حمله و پلمپ) ──
+  if (endingId === 'BAD_ENDING_POLICE_SHUTDOWN') {
+    return `درگیری فیزیکی و تهدید خشن پرسنل، کنترل اوضاع را از دست خارج کرد.
+گشت شبانه پلیس با گزارش همسایگان وارد کوچه حسینی شد.
+سالار سکوت کرد، مدارک در گاوصندوق قفل شدند و کافه پنتیمنتو با نوار زرد پلمپ گردید.
+حقیقت در بایگانی پرونده‌های راکد دادسرا خاک خورد.
+💀 BAD ENDING: POLICE SHUTDOWN (پلمپ قانونی کافه)`;
+  }
+
+  // ── 10. BAD_ENDING_COLD_EXPULSION (اخراج دائم) ──
+  if (endingId === 'BAD_ENDING_COLD_EXPULSION') {
+    return `سنگینی سکوت و خشم پرسنل به اخراجت از کافه انجامید.
+لنگه چوبی درِ پنتیمنتو محکم پشت سرت بسته و قفل شد.
+تنها در سرمای کوچه حسینی، پلاک ۵۵، در میان مه کوهپایه کرج ایستادی؛ جایی که حقیقت برای همیشه پشت درهای بسته ماند.
+💀 BAD ENDING: COLD EXPULSION (اخراج و درهای بسته)`;
+  }
+
   return `پروندهٔ پنتیمنتو به پایان رسید.`;
 }
+
