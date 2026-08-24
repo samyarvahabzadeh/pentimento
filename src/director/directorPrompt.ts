@@ -68,30 +68,19 @@ export function buildUserPrompt(context: DirectorContext): string {
   } = context;
 
   const personaSection = activeNpcPersonas && activeNpcPersonas.length > 0
-    ? activeNpcPersonas.map(p => `🎭 [${p.formalName} (${p.publicCalling})]:
-  • هویت: ${p.archetype}
-  • موضوعات ذهنی جاری:
-${p.currentLifeThreads.map(th => `    - ${th}`).join('
-')}`).join('
-
-')
+    ? activeNpcPersonas.map(p => `🎭 [${p.formalName} (${p.publicCalling})]:\n  • هویت: ${p.archetype}\n  • موضوعات ذهنی جاری:\n${p.currentLifeThreads.map(th => `    - ${th}`).join('\n')}`).join('\n\n')
     : '(کاراکتر خاصی در این نقطه حضور ندارد)';
 
   const factLines = relevantFacts && relevantFacts.length > 0
-    ? relevantFacts.map(f => `  • [${f.id}]: ${f.text}`).join('
-')
+    ? relevantFacts.map(f => `  • [${f.id}]: ${f.text}`).join('\n')
     : '  (هیچ فکت جدیدی مطرح نیست)';
 
   const recentBeatsFormatted = scene.recentBeats.length > 0
     ? scene.recentBeats.slice(-5).map(b => {
         const pLine = b.playerInput ? `👤 بازیکن: «${b.playerInput}»` : '';
         const nLine = b.narrative ? `🎬 پاسخ نوبت قبل: «${b.narrative}»` : `🎬 خلاصه: ${b.summary}`;
-        return `[نوبت ${b.turn}]
-${pLine ? pLine + '
-' : ''}${nLine}`;
-      }).join('
-
-')
+        return `[نوبت ${b.turn}]\n${pLine ? pLine + '\n' : ''}${nLine}`;
+      }).join('\n\n')
     : '  (شروع صحنه)';
 
   const flags = canonical.canonicalFlags.length > 0
