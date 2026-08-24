@@ -59,12 +59,6 @@ export const NODE_02_FACTS = [
     id: 'fact_the_guest_pentimento_remark',
     text: 'مرد بدون اینکه نگاهش را از تابلو بگیرد می‌گوید: «اسم جالبیه. پنتیمنتو.» مکثی می‌کند؛ چشمانش آرام به سمت فنجان نیمه‌سرد و رهاشدهٔ میز ۵ سُر می‌خورد: «می‌دونی چیه؟ نقاشی روی نقاشی قبلی... بعضی‌ها قبل از اینکه قهوه‌شون سرد بشه فرار می‌کنن.» و قبل از اینکه جوابی بدهی، می‌رود.',
   },
-  {
-    // RED GLOVE — Physical object. Canon records EXISTENCE only. No identity or attribution.
-    // Theory Ledger handles all player interpretations.
-    id: 'fact_red_glove_near_counter',
-    text: 'یک دستکش پارچه‌ای قرمز رنگ، نزدیک بخش دراور و کانتر کافه روی زمین افتاده است.',
-  },
 ];
 
 export const NODE_02_INITIAL_STATE = {
@@ -81,7 +75,6 @@ export const NODE_02_INITIAL_STATE = {
     'red_stain_saucer',
     'counter_area',
     'cafe_interior',
-    'red_glove_object',
     'the_guest_figure',
   ] as string[],
   canonFacts: NODE_02_FACTS,

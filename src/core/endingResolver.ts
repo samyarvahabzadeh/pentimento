@@ -7,6 +7,7 @@ import type {
 } from './types.js';
 import { CANONICAL_TIMELINE_CONSTRAINTS } from '../canon/node17.js';
 import { validateTimeline } from './timelineEngine.js';
+import { evaluateEpisode01Constellations } from '../canon/episode01Situation.js';
 
 /**
  * Deterministically calculates the multi-dimensional Preservation Profile.
@@ -27,6 +28,9 @@ export function calculatePreservationProfile(state: RunState): PreservationProfi
   const yashinRapport = state.npcMemory.yashin?.rapport ?? 0;
   people += Math.max(-20, Math.min(20, (maniRapport + yashinRapport) * 5));
   if (flags.includes('withdrew_from_collector_meeting') || flags.includes('protected_group')) people += 15;
+  if (state.situation?.leverage.includes('staff_coalition')) people += 15;
+  if (flags.includes('situation_staff_chose_to_stay') || state.situation?.openCrises.some(crisis => crisis.id === 'staff_walkout' && crisis.status === 'costly_success')) people += 10;
+  if (flags.includes('haniyeh_left_with_photo') && !flags.includes('haniyeh_aftermath_resolved')) people -= 20;
   if (flags.includes('attempted_damage_to_art')) people -= 15;
   if (threat >= 60 && !flags.includes('arian_g_intervention_eligible')) people -= 15;
   people = Math.max(0, Math.min(100, people));
@@ -35,6 +39,10 @@ export function calculatePreservationProfile(state: RunState): PreservationProfi
   let truth = 30;
   if (flags.includes('rejected_financial_offer')) truth += 25;
   if (flags.includes('timeline_synthesis_finalized')) truth += 25;
+  if (ev.includes('fact_final_timeline_synthesis')) truth += 25;
+  if (ev.includes('fact_florence_historical_breach')) truth += 15;
+  if (flags.includes('painting_recovered_cleanly')) truth += 10;
+  if (flags.includes('painting_taken_to_waiting_van') && !flags.includes('painting_aftermath_resolved')) truth -= 20;
   if (facts.includes('analyzed_invoice_forgery') || ev.includes('invoice_is_forged')) truth += 15;
   if (facts.includes('footage_was_never_written') || ev.includes('footage_was_never_written')) truth += 15;
   if (flags.includes('retracted_false_theory')) truth += 15;
@@ -46,6 +54,7 @@ export function calculatePreservationProfile(state: RunState): PreservationProfi
   if (facts.includes('asked_salar_about_invoice')) reputation += 15;
   if (facts.includes('asked_mehri_about_cameras')) reputation += 15;
   if (flags.includes('leaked_evidence_publicly')) reputation -= 45;
+  if (flags.includes('painting_recovered_with_damage')) reputation -= 10;
   if (flags.includes('accused_witness_of_lying') && !facts.includes('fact_route_testimony_conflict')) reputation -= 25;
   reputation = Math.max(0, Math.min(100, reputation));
 
@@ -104,6 +113,17 @@ export function calculateTruthDiscovery(state: RunState): number {
   // SHADOW: Finalized timeline / shadow seed confirmable
   if (flags.includes('shadow_seed_confirmable') || flags.includes('timeline_synthesis_finalized')) score += 15;
 
+  // v2.7: claims are established by alternative clue constellations rather
+  // than one blessed list of legacy IDs.  Keep the legacy score for old saves
+  // and take the stronger of the two readings.
+  const constellationCount = evaluateEpisode01Constellations(state)
+    .filter(item => item.established).length;
+  let constellationScore = constellationCount * 20;
+  if (ev.includes('fact_final_timeline_synthesis')) constellationScore += 15;
+  if (ev.includes('fact_florence_historical_breach')) constellationScore += 20;
+  if (ev.includes('fact_reconstructed_transfer_fragment')) constellationScore += 10;
+  score = Math.max(score, constellationScore);
+
   return Math.max(0, Math.min(100, score));
 }
 
@@ -144,6 +164,14 @@ export function calculateTruthInterpretation(state: RunState): number {
     score += 20;
   }
 
+  const establishedConstellations = evaluateEpisode01Constellations(state)
+    .filter(item => item.established).length;
+  let situationInterpretation = establishedConstellations * 15;
+  if (state.canonical.evidenceIds.includes('fact_final_timeline_synthesis')) situationInterpretation += 25;
+  if (state.canonical.evidenceIds.includes('fact_florence_historical_breach')) situationInterpretation += 15;
+  if (state.canonical.canonicalFlags.includes('contaminated_records_reconstructed')) situationInterpretation += 10;
+  score = Math.max(score, situationInterpretation);
+
   return Math.max(0, Math.min(100, score));
 }
 
@@ -162,6 +190,9 @@ export function calculateTrustScore(state: RunState): number {
   const mehri = state.npcMemory.arian_mehri?.rapport ?? 0;
   const totalRapport = salar + haniyeh + mani + yashin + mehri;
   score += totalRapport * 4;
+  const liveTrust = ['salar', 'haniyeh', 'mani', 'yashin']
+    .reduce((sum, npcId) => sum + (state.npcTrust?.[npcId] ?? 0), 0);
+  score += liveTrust * 4;
 
   // 2. Absence of False Accusations
   const flags = state.canonical.canonicalFlags;
@@ -169,15 +200,15 @@ export function calculateTrustScore(state: RunState): number {
   if (flags.includes('accused_witness_of_lying')) score -= 20;
   if (flags.includes('shared_findings_with_salar')) score += 15;
   if (flags.includes('protected_group')) score += 15;
+  if (state.situation?.leverage.includes('staff_coalition')) score += 15;
+  if (flags.includes('situation_staff_chose_to_stay') || state.situation?.openCrises.some(crisis => crisis.id === 'staff_walkout' && crisis.status === 'costly_success')) score += 15;
+  if (flags.includes('haniyeh_left_with_photo') && !flags.includes('haniyeh_aftermath_resolved')) score -= 25;
 
   return Math.max(0, Math.min(100, score));
 }
 
-/**
- * The Master Ending Resolver Algorithm.
- * Resolves the 6 canonical endings + variants deterministically.
- */
 export function resolveEnding(state: RunState): EndingEvaluationResult {
+
   const preservation = calculatePreservationProfile(state);
   const truthDiscovery = calculateTruthDiscovery(state);
   const truthInterpretation = calculateTruthInterpretation(state);
@@ -207,7 +238,11 @@ export function resolveEnding(state: RunState): EndingEvaluationResult {
   } else if (flags.includes('assaulted_staff') || flags.includes('threatened_violence_weapon')) {
     endingId = 'BAD_ENDING_POLICE_SHUTDOWN';
     reasons.push('درگیری فیزیکی، تهدید پرسنل یا تخریب کافه موجب حضور فوری پلیس و پلمپ کافه شد.');
-  } else if (flags.includes('accused_insider_falsely') && trustScore <= 20) {
+  } else if (
+    flags.includes('accused_insider_falsely') &&
+    trustScore <= 20 &&
+    ((state.clocks?.npcPanic ?? 0) >= 4 || flags.includes('internal_betrayal_triggered'))
+  ) {
     endingId = 'BAD_ENDING_INTERNAL_BETRAYAL';
     reasons.push('اتهام کورکورانه به خودی‌ها و نابودی پیوند رفاقت موجب تخلیه شبانه کافه و سرقت تابلو شد.');
   } else if (flags.includes('expelled_permanently') || (state.canonical.threat >= 85 && trustScore <= 15)) {
@@ -249,6 +284,20 @@ export function resolveEnding(state: RunState): EndingEvaluationResult {
     reasons.push('مدارک خام در فضای مجازی منتشر شدند و در هیاهوی تئوری‌های توطئه گم گشتند.');
   }
 
+  else if (flags.includes('sacrificed_painting_to_deny_factions')) {
+    endingId = 'ESPRESSO';
+    vetoApplied = 'historical_witness_sacrificed';
+    reasons.push('بازیکن آگاهانه شاهد تاریخی را قربانی کرد تا هیچ جناحی نتواند آن را تصاحب یا پاک‌نویسی کند.');
+  }
+
+  // A missed extraction is a branch into pursuit/negotiation, not a game over;
+  // it does, however, veto a clean mastery ending until that branch is resolved.
+  else if (flags.includes('painting_taken_to_waiting_van') && !flags.includes('painting_aftermath_resolved')) {
+    endingId = 'ESPRESSO';
+    vetoApplied = 'painting_still_in_transit';
+    reasons.push('حقیقت تا حدی روشن شد، اما تابلو هنوز در اختیار شبکه و مسیر بازپس‌گیری ناتمام است.');
+  }
+
   // ── PRIORITY 4: Mastery & Illumination (TRUE_ENDING) ──
   else if (
     truthDiscovery >= 70 &&
@@ -284,7 +333,7 @@ export function resolveEnding(state: RunState): EndingEvaluationResult {
   const variantId = `${variantPrefix}__${playerClass.toUpperCase()}`;
 
   // Generate Epilogue Text based on Ending + Variant + Role Lens + Truth Metrics
-  const epilogueText = generateEpilogueText(
+  const baseEpilogueText = generateEpilogueText(
     endingId,
     variantId,
     playerClass,
@@ -293,6 +342,10 @@ export function resolveEnding(state: RunState): EndingEvaluationResult {
     truthDiscovery,
     truthInterpretation
   );
+  const situationCoda = generateSituationCoda(state);
+  const epilogueText = situationCoda
+    ? `${baseEpilogueText}\n\n${situationCoda}`
+    : baseEpilogueText;
 
   return {
     endingId,
@@ -311,6 +364,54 @@ export function resolveEnding(state: RunState): EndingEvaluationResult {
     },
     evaluatedAtTurn: state.scene.turn,
   };
+}
+
+function generateSituationCoda(state: RunState): string | undefined {
+  const situation = state.situation;
+  if (!situation) return undefined;
+  const flags = state.canonical.canonicalFlags;
+  const lines: string[] = [];
+
+  if (flags.includes('painting_recovered_cleanly')) {
+    lines.push('تابلو یک بار از دیوار جدا شد و در دل کوچه پس گرفته شد؛ شکست میانهٔ راه از تاریخ این شب حذف نشد، به بخشی از آن تبدیل شد.');
+  } else if (flags.includes('painting_recovered_with_damage')) {
+    lines.push('تابلو برگشت، اما ترک گوشهٔ قاب و چهره‌ای که شبکه از تو به خاطر سپرد، بهای بازپس‌گیری آن شد.');
+  } else if (flags.includes('painting_in_public_custody')) {
+    lines.push('تابلو از دست شبکه بیرون آمد، ولی پشت شیشهٔ حافظت رسمی قرار گرفت؛ نجاتش دادی و در همان لحظه اختیارش را از کافه گرفتی.');
+  } else if (flags.includes('painting_taken_to_waiting_van')) {
+    lines.push('قاب خالی روی دیوار مانده و رد ون هنوز ادامه دارد؛ این پایان، درِ یک تعقیب ناتمام است.');
+  }
+
+  if (flags.includes('sacrificed_painting_to_deny_factions')) {
+    lines.push('شبکه دست خالی ماند، چون تو خودِ میدان نزاع را سوزاندی؛ آدم‌ها ماندند و بخشی از شهادت تاریخی برای همیشه از میان رفت.');
+  } else if (flags.includes('chose_preserver_concealment')) {
+    lines.push('حقیقت زیر لایه‌ای تازه زنده ماند و کلیدش به دست تو افتاد؛ پیروزی‌ای که مرز باریکی با تبدیل شدن به متولی بعدی راز دارد.');
+  }
+
+  if (flags.includes('contaminated_records_reconstructed')) {
+    lines.push('سطرهای پاک‌شده از دو رد مستقل بازسازی شدند؛ تلاش برای حذف حقیقت، امضای پاک‌کننده را هم به پرونده افزود.');
+  } else if (flags.includes('office_records_partly_contaminated')) {
+    lines.push('بخشی از فاکتور برای همیشه کدر ماند و هر روایتی از این شب باید جای خالی آن را صادقانه حمل کند.');
+  }
+
+  if (flags.includes('haniyeh_returns_as_independent_ally')) {
+    lines.push('حانیه برگشت، اما نه به‌عنوان تابع سالار: نسخهٔ مستقل عکس و حق تصمیم‌گیری دربارهٔ آن را برای خودش نگه داشت.');
+  } else if (flags.includes('haniyeh_left_with_photo') && !flags.includes('haniyeh_aftermath_resolved')) {
+    lines.push('حانیه و پنتی بیرون از کافه ماندند؛ شاهد زنده است، اما اعتمادش دیگر جزو دارایی‌های این خانه نیست.');
+  }
+
+  if (situation.leverage.includes('credible_provenance_decoy')) {
+    lines.push('جایی بیرون از کافه، یک شجره‌نامهٔ بدل هنوز دست‌به‌دست می‌شود؛ دروغی که جان حقیقت را خرید و شاید روزی طلبش را پس بگیرد.');
+  } else if (situation.routeMarks.includes('misdirection')) {
+    lines.push('بلوفی که برای خریدن زمان ساختی در حافظهٔ شبکه مانده است؛ حقیقت نجات یافت، اما دشمن حالا زبان دروغ تو را هم می‌شناسد.');
+  } else if (situation.routeMarks.includes('public_exposure')) {
+    lines.push('نسخه‌هایی بیرون از کافه وجود دارند؛ دیگر هیچ‌کس مالک یگانهٔ روایت امشب نیست.');
+  } else if (situation.routeMarks.includes('social_alliance')) {
+    lines.push('آنچه پرونده را نگه داشت فقط کاغذ نبود؛ آدم‌هایی بودند که پس از دیدن بخشی از نقشه، انتخاب کردند در آن نقش بگیرند.');
+  }
+
+  if (lines.length === 0) return undefined;
+  return `【ردّ انتخاب‌های تو】\n${lines.slice(0, 3).join('\n')}`;
 }
 
 /**
@@ -469,4 +570,4 @@ ENDING: WRONG MAN`;
   return `پروندهٔ پنتیمنتو به پایان رسید.`;
 }
 
-
+export const evaluateEnding = resolveEnding;

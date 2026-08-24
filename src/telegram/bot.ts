@@ -5,11 +5,12 @@ dotenv.config();
 
 import { resolvePlayerTurn } from '../core/resolvePlayerTurn.js';
 import { createTransport } from '../transport/transportFactory.js';
-import { getRunByTelegramUser, saveRun, deleteRun, resetAllRuns } from '../storage/db.js';
+import { getRunByTelegramUser, saveRun, deleteRun, deleteRunsByTelegramUser, resetAllRuns } from '../storage/db.js';
 import { INTRO_DIALOGUE, ROLE_SELECTION_PROMPT } from '../canon/node00.js';
 import { getCoverPath, getPendingMediaForTurn } from './mediaDispatcher.js';
 import { createInitialRunState } from '../core/initialState.js';
 import type { RunState } from '../core/types.js';
+import { computeBuildAttestation } from '../core/buildAttestation.js';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -19,8 +20,32 @@ if (!token) {
 
 const bot = new Bot(token);
 const transport = createTransport();
+const buildAttestation = computeBuildAttestation();
+
+const adminUserIds = new Set(
+  (process.env.PENTIMENTO_ADMIN_USER_IDS ?? '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean)
+);
+const adminUsernames = new Set(
+  (process.env.PENTIMENTO_ADMIN_USERNAMES ?? '')
+    .split(',')
+    .map(value => value.trim().replace(/^@/, '').toLowerCase())
+    .filter(Boolean)
+);
+
+function isAdminContext(ctx: any): boolean {
+  const id = ctx.from?.id?.toString();
+  const username = ctx.from?.username?.toLowerCase();
+  return Boolean(
+    (id && adminUserIds.has(id)) ||
+    (username && adminUsernames.has(username))
+  );
+}
 
 console.log(`[Bot] Active provider: ${process.env.ACTIVE_PROVIDER ?? 'gemini'}`);
+console.log(`[Bot] Runtime build fingerprint: ${buildAttestation.fingerprint}`);
 
 // Per-user debug mode toggle
 const userDebugModes = new Map<number, boolean>();
@@ -68,6 +93,7 @@ bot.command('start', async (ctx) => {
   if (!userId) return;
 
   console.log(`[Bot] Handling /start for user ${userId}`);
+  deleteRunsByTelegramUser(userId);
   const state = createNewState();
   saveRun(state.canonical.runId, userId, state);
 
@@ -81,8 +107,7 @@ bot.command('start', async (ctx) => {
   }
 
   await safeReply(ctx, buildIntroMessage(), {
-    parse_mode: 'Markdown',
-    reply_markup: roleKeyboard
+    parse_mode: 'Markdown'
   });
 });
 
@@ -92,8 +117,7 @@ bot.command('restart', async (ctx) => {
   if (!userId) return;
 
   console.log(`[Bot] Handling /restart for user ${userId}`);
-  const existing = getRunByTelegramUser(userId);
-  if (existing) deleteRun(existing.runId);
+  deleteRunsByTelegramUser(userId);
 
   const state = createNewState();
   saveRun(state.canonical.runId, userId, state);
@@ -111,13 +135,43 @@ bot.command('restart', async (ctx) => {
   }
 
   await safeReply(ctx, buildIntroMessage(), {
-    parse_mode: 'Markdown',
-    reply_markup: roleKeyboard
+    parse_mode: 'Markdown'
   });
+});
+
+// ─── /debug_version ────────────────────────────────────────────────
+bot.command('debug_version', async (ctx) => {
+  const info = [
+    `📦 *Pentimento Engine Build Manifest*`,
+    `• *Build ID:* \`pentimento-living-situation-20260825\``,
+    `• *Story Schema Version:* \`v2.7.0-living-situation\``,
+    `• *Runtime SHA256:* \`${buildAttestation.fingerprint}\``,
+    `• *Attested Files:* \`${buildAttestation.fileCount}\``,
+    `• *Generic Dispatch:* \`SCENE_GROUNDED\``,
+    `• *Evidence Gating:* \`LAYERED / NO REWARD FARMING\``,
+    `• *NPC Knowledge Cards:* \`ACTIVE\``,
+    `• *Situation Fronts:* \`3 ACTIVE / FAIL-FORWARD\``,
+    `• *Clue Structure:* \`CONSTELLATIONS / NON-LINEAR\``,
+    `• *Persistent Commitments:* \`ACTIVE\``,
+    `• *Agency Validator:* \`ACTIVE\``,
+    `• *Canon Injection Guard:* \`ACTIVE\``,
+  ].join('\n');
+  await safeReply(ctx, info, { parse_mode: 'Markdown' });
+});
+
+// ─── /whoami (safe identity helper for admin configuration) ──────
+bot.command('whoami', async (ctx) => {
+  const id = ctx.from?.id?.toString() ?? 'unknown';
+  const username = ctx.from?.username ? `@${ctx.from.username}` : 'none';
+  await ctx.reply(`Telegram user ID: ${id}\nUsername: ${username}`);
 });
 
 // ─── /reset_all (Admin Reset) ──────────────────────────────────────
 bot.command('reset_all', async (ctx) => {
+  if (!isAdminContext(ctx)) {
+    await ctx.reply('این فرمان فقط برای مدیر پیکربندی‌شده فعال است.');
+    return;
+  }
   resetAllRuns();
   await safeReply(ctx, '🧹 *تمام پروفایل‌های فعال و حافظه تمام بازیکنان با موفقیت ریست شد.*', { parse_mode: 'Markdown' });
 });
@@ -126,9 +180,36 @@ bot.command('reset_all', async (ctx) => {
 bot.command('debug', async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return;
+  if (!isAdminContext(ctx)) {
+    await ctx.reply('حالت ممیزی فقط برای مدیر پیکربندی‌شده فعال است.');
+    return;
+  }
   const current = userDebugModes.get(userId) ?? false;
   userDebugModes.set(userId, !current);
   await ctx.reply(`Debug mode: ${!current ? 'ON 🔍' : 'OFF'}`);
+});
+
+// ─── /audit_last_turn (actual persisted state delta, not prose) ──
+bot.command('audit_last_turn', async (ctx) => {
+  const userId = ctx.from?.id?.toString();
+  if (!userId) return;
+  if (!isAdminContext(ctx)) {
+    await ctx.reply('این فرمان فقط برای مدیر پیکربندی‌شده فعال است.');
+    return;
+  }
+
+  const record = getRunByTelegramUser(userId);
+  const trace = record?.state.lastTurnTrace;
+  if (!trace) {
+    await ctx.reply('برای این اجرا هنوز trace قابل‌ممیزی ثبت نشده است.');
+    return;
+  }
+
+  await ctx.reply(JSON.stringify({
+    runtimeSha256: buildAttestation.fingerprint,
+    turn: record?.state.scene.turn,
+    trace,
+  }, null, 2));
 });
 
 // ─── /state ────────────────────────────────────────────────────────
@@ -188,6 +269,7 @@ bot.on('message:text', async (ctx) => {
 
         if (userDebugModes.get(userId)) {
           const dbg = (result as any)._debugInfo ?? {};
+          const trace = dbg.trace ?? result.stateAfter.lastTurnTrace;
           const effects = result.validation.acceptedSoftEffects;
           const efStr = effects.length > 0
             ? effects.map((e: any) => `${e.kind}${e.delta > 0 ? '+' : ''}${e.delta}`).join(', ')
@@ -202,6 +284,11 @@ bot.on('message:text', async (ctx) => {
             `int: ${result.interpretation.kind}->${result.interpretation.targetId ?? '-'}`,
             `act: ${result.validation.acceptedActionId ?? 'none'}`,
             `eff: ${efStr}`,
+            `path: ${trace?.resolutionPath ?? '?'}`,
+            `scene: ${trace?.sceneBefore ?? '?'}->${trace?.sceneAfter ?? '?'}`,
+            `evidence+: ${(trace?.evidenceAdded ?? []).join(',') || 'none'}`,
+            `proofΔ: ${JSON.stringify(trace?.proofDelta ?? {})}`,
+            `build: ${buildAttestation.fingerprint.slice(0, 16)}`,
             `s/t: ${result.stateBefore.canonical.stress}->${result.stateAfter.canonical.stress} / ${result.stateBefore.canonical.threat}->${result.stateAfter.canonical.threat}`,
             '```',
           ].join('\n');
@@ -249,14 +336,18 @@ bot.catch((err) => {
 });
 
 
-// ── HTTP Health Check & Webhook Server (Auto-Wake for Render) ──
+// ── HTTP Health Check & Webhook Server ──
 const PORT = process.env.PORT || 3000;
-const isRender = !!process.env.RENDER || !!process.env.PORT;
+const isRender = !!process.env.RENDER;
 const webhookPath = '/webhook';
-const webhookCallbackHandler = webhookCallback(bot, 'http');
+
+let webhookCallbackHandler: any = null;
+if (isRender) {
+  webhookCallbackHandler = webhookCallback(bot, 'http');
+}
 
 const server = http.createServer(async (req, res) => {
-  if (req.method === 'POST' && req.url === webhookPath) {
+  if (isRender && req.method === 'POST' && req.url === webhookPath && webhookCallbackHandler) {
     try {
       return await webhookCallbackHandler(req, res);
     } catch (e: any) {
@@ -272,7 +363,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, async () => {
   console.log(`[Bot] HTTP Server listening on port ${PORT}`);
   
-  if (isRender && process.env.RENDER) {
+  if (isRender) {
     const webhookUrl = process.env.RENDER_EXTERNAL_URL 
       ? `${process.env.RENDER_EXTERNAL_URL}${webhookPath}`
       : `https://pentimento-bot.onrender.com${webhookPath}`;
@@ -288,7 +379,9 @@ server.listen(PORT, async () => {
     console.log('[Bot] Running via Long Polling in local mode...');
     try {
       await bot.api.deleteWebhook({ drop_pending_updates: false });
+      await bot.init();
       bot.start({
+        drop_pending_updates: false,
         onStart: (botInfo) => {
           console.log(`[Bot] ✅ @${botInfo.username} is running live via Long Polling!`);
         },

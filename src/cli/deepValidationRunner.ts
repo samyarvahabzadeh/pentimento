@@ -48,7 +48,7 @@ export function runFullValidation() {
   console.log('1.1 Player initiates /start:');
   console.log('----------------------------------------------------');
   console.log('INTRO OUTPUT SENT TO PLAYER:');
-  INTRO_DIALOGUE.forEach(d => console.log(`  ${d.speaker === 'Unknown' ? 'ناشناس' : 'تو'}: «${d.text}»`));
+  INTRO_DIALOGUE.forEach((d: any) => console.log(`  ${d.speaker === 'Unknown' ? 'ناشناس' : 'تو'}: «${d.text}»`));
   console.log('----------------------------------------------------');
   console.log('State at start: currentNode=' + s.canonical.currentNode + ', playerClass=' + s.canonical.playerClass);
 

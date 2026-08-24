@@ -1,4 +1,4 @@
-import type { DirectorOutput, MemoryCandidate, SoftEffectProposal } from '../core/types.js';
+import type { DirectorOutput, IntentRankerOutput, MemoryCandidate, SoftEffectProposal } from '../core/types.js';
 
 function extractBalancedJson(text: string): string {
   const startIdx = text.indexOf('{');
@@ -37,6 +37,50 @@ function extractBalancedJson(text: string): string {
   // Fallback to lastIndex if not cleanly closed
   const endIdx = text.lastIndexOf('}');
   return endIdx > startIdx ? text.substring(startIdx, endIdx + 1) : text;
+}
+
+export function parseRankerOutput(rawText: string, validCandidateIds: string[]): IntentRankerOutput {
+  try {
+    let jsonStr = rawText.trim();
+    const jsonMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1].trim();
+    }
+    jsonStr = extractBalancedJson(jsonStr);
+
+    const parsed = JSON.parse(jsonStr);
+
+    let candidateId = typeof parsed.candidateId === 'string' ? parsed.candidateId.trim() : '';
+    if (!validCandidateIds.includes(candidateId)) {
+      // Fallback to first valid candidate if model misnamed
+      candidateId = validCandidateIds.find(id => id.toLowerCase() === candidateId.toLowerCase()) || validCandidateIds[0];
+    }
+
+    const confidence = typeof parsed.confidence === 'number' ? Math.max(0, Math.min(1, parsed.confidence)) : 0.85;
+
+    return {
+      candidateId,
+      confidence,
+      speechAct: typeof parsed.speechAct === 'string' ? parsed.speechAct : undefined,
+      tone: typeof parsed.tone === 'string' ? parsed.tone : undefined,
+      targetNpc: typeof parsed.targetNpc === 'string' ? parsed.targetNpc : undefined,
+    };
+  } catch (err) {
+    // Single repair heuristic
+    for (const validId of validCandidateIds) {
+      if (rawText.includes(validId)) {
+        return {
+          candidateId: validId,
+          confidence: 0.75,
+        };
+      }
+    }
+
+    return {
+      candidateId: validCandidateIds[0] || 'action_observe_surroundings',
+      confidence: 0.5,
+    };
+  }
 }
 
 export function parseDirectorOutput(rawText: string): DirectorOutput {

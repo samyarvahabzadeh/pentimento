@@ -29,7 +29,7 @@ export function processAudioInformationLoss(
 
   // Generic audio advantage resolution: Requires dedicated focus on listening
   const hasDedicatedFocus = /تمرکز صوتی|شنود دقیق|گوش.*تیز|با.*دقت.*گوش/.test(playerInput);
-  const hasAudioAdvantage = hasDedicatedFocus;
+  const hasAudioAdvantage = hasDedicatedFocus || state.canonical.playerClass === 'coffee_alchemist';
 
   if (activeEncounter) {
     const isQuestioningLostLine = /چی گفتی|تکرار کن|دوباره بگو|جمله قبلی/.test(playerInput);

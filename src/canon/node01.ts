@@ -57,6 +57,6 @@ export const NODE_01_INITIAL_STATE = {
 کنار پایش، یک رسید کاغذی نم‌کشیده روی زمین افتاده است.`,
 
   activeEntityIds: ['exiting_man'] as string[],
-  visibleObjectIds: ['cafe_door', 'cafe_entrance', 'street', 'wet_receipt', 'red_gloves'] as string[],
+  visibleObjectIds: ['cafe_door', 'cafe_entrance', 'street', 'wet_receipt'] as string[],
   canonFacts: NODE_01_FACTS,
 };

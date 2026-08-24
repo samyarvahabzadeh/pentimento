@@ -19,7 +19,12 @@ function getDb() {
     return null;
   }
 
-  db = new DatabaseSync('pentimento.db');
+  const dbPath = process.env.PENTIMENTO_DB_PATH || 'pentimento.db';
+  db = new DatabaseSync(dbPath);
+  db.exec(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA busy_timeout = 5000;
+  `);
   db.exec(`
     CREATE TABLE IF NOT EXISTS runs (
       runId TEXT PRIMARY KEY,
@@ -107,6 +112,17 @@ export function deleteRun(runId: string): void {
   d.prepare('DELETE FROM memories WHERE runId = ?').run(runId);
 }
 
+export function deleteRunsByTelegramUser(telegramUserId: string): void {
+  const d = getDb();
+  if (!d) {
+    for (const [runId, rec] of memRuns) {
+      if (rec.telegramUserId === telegramUserId) memRuns.delete(runId);
+    }
+    return;
+  }
+  d.prepare('DELETE FROM runs WHERE telegramUserId = ?').run(telegramUserId);
+}
+
 export function resetAllRuns(): void {
   const d = getDb();
   if (!d) {
@@ -130,4 +146,3 @@ export function appendEventToDb(id: string, runId: string, type: string, turn: n
     VALUES (?, ?, ?, ?, ?)
   `).run(id, runId, type, turn, JSON.stringify(data));
 }
-

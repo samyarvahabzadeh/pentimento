@@ -1,6 +1,6 @@
 {
   "name": "pentimento",
-  "version": "0.1.0",
+  "version": "2.7.0",
   "type": "module",
   "scripts": {
     "game:text": "tsx src/cli/textHarness.ts",
@@ -25,6 +25,12 @@
     "test:balancing": "tsx src/cli/narrativeBalancingValidationTest.ts",
     "test:playtest": "tsx src/cli/autonomousPlaytestAgent.ts",
     "test:80turns": "tsx src/cli/deepHumanPlaytest80Turns.ts",
+    "test:gating": "tsx src/cli/evidenceGatingRegressionTest.ts",
+    "test:roles": "tsx src/cli/rolePathRegressionTest.ts",
+    "test:verification": "tsx src/cli/verificationRegressionTest.ts",
+    "test:situation": "tsx src/cli/situationFreedomTest.ts",
+    "test:security": "tsx src/cli/sourceSecurityRegressionTest.ts",
+    "fingerprint": "tsx src/cli/printBuildFingerprint.ts --hash-only",
     "models:list": "tsx src/transport/listModels.ts",
     "bot": "tsx src/telegram/bot.ts",
     "probe": "tsx src/transport/probe.ts",

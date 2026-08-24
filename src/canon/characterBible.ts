@@ -197,3 +197,177 @@ export const CHARACTER_BIBLE: Record<string, CharacterProfile> = {
     specialStoryHooks: ['Controlled Disappearance', 'Acoustic / Visual Rescue Tracking'],
   },
 };
+
+import type { NpcRouteCard } from '../core/types.js';
+
+export const NPC_ROUTE_CARDS: Record<string, NpcRouteCard> = {
+  salar: {
+    npcId: 'salar',
+    nameFa: 'سالار صالحی',
+    publicFace: 'مدیر خونسرد و محترم کافه که همه چیز را تحت کنترل نشان می‌دهد.',
+    privateFear: 'رسوایی، از دست رفتن میراث خانوادگی و افشای ارتباط گذشتهٔ خود با خریدار تابلو.',
+    desire: 'محافظت از کافه و پرسنل بدون ورود پلیس یا افشای سابقهٔ تابلو.',
+    lieStyle: 'partial_truth',
+    respects: ['شواهد مستند تاریخی', 'احترام به حریم خصوصی', 'پیشنهادهای مصالحه‌جویانه'],
+    dislikes: ['تهدید بدون مدرک', 'جار و جنجال در سالن کافه', 'کنجکاوی درباره فاکتورهای قدیمی'],
+    roleAffinities: {
+      art_historian: 1,
+      investigator: -1,
+      systems_analyst: 0,
+      coffee_alchemist: 0,
+    },
+    memoryHooks: ['promise_not_to_leak_records', 'insult_cafe_reputation', 'accuse_salar_directly'],
+    knowledgeCards: [
+      {
+        id: 'salar_knows_painting_history',
+        factIds: ['fact_painting_provenance_link', 'fact_lot55_buyer_contact'],
+        truthMode: 'partial',
+        minTrust: 2,
+        allowedScenes: ['NODE_02', 'NODE_03', 'NODE_07', 'NODE_11', 'NODE_16', 'NODE_18'],
+        dialogueVariants: {
+          cooperative: 'سالار با آرامش فاکتور قدیمی را نشان می‌دهد: «این تابلو از سال‌ها پیش در خانوادهٔ ما بود؛ تا اینکه چند روز قبل تماسی از طرف خریدار پلاک ۵۵ دریافت کردم.»',
+          guarded: 'سالار مکث می‌کند: «تابلو برای فروش نیست. هر سندی هم که هست یک موضوع اداری داخلیه.»',
+          irritated: '«فکر نمی‌کنم حساب‌وکتاب شخصی من ارتباطی با غریبه‌ها داشته باشه.»',
+        },
+      },
+    ],
+    disclosureRules: [
+      { condition: 'trust >= 2 || has_evidence:fact_invoice_lot55_seal', revealsKnowledgeCardId: 'salar_knows_painting_history' },
+    ],
+  },
+
+  yashin: {
+    npcId: 'yashin',
+    nameFa: 'یاشین شجاعی',
+    publicFace: 'باریستای مسلط، شیک‌پوش، مبادی آداب و بسیار حساس به کیفیت قهوه.',
+    privateFear: 'بروز نقص فنی یا آسیب‌دیدگی در حریم بار و متهم شدن به بی‌دقتی.',
+    desire: 'اثبات برتری استانداردهای حرفه‌ای و محافظت از برادرش مانی.',
+    lieStyle: 'redirect',
+    respects: ['سوالات دقیق سیستمی و زمانی', 'شناخت اصالت قهوه', 'ادب در گفتگو'],
+    dislikes: ['توهین به پرستیژ بار', 'قاطی کردن والیبال با فوتبال', 'بی‌نظمی در ساعات'],
+    roleAffinities: {
+      systems_analyst: 1,
+      coffee_alchemist: 1,
+      art_historian: 0,
+      investigator: 0,
+    },
+    memoryHooks: ['insult_coffee_quality', 'respect_yashin_knowledge'],
+    knowledgeCards: [
+      {
+        id: 'yashin_knows_exit_timing',
+        factIds: ['fact_time_0017', 'fact_table5_active_window'],
+        truthMode: 'truth',
+        minTrust: 0,
+        allowedScenes: ['NODE_02', 'NODE_03', 'NODE_04', 'NODE_05'],
+        dialogueVariants: {
+          cooperative: 'یاشین سر تکان می‌دهد: «دقیقاً ساعت ۰۰:۱۷ بود. مرد پالتوپوش فنجان را تقریباً دست‌نخورده گذاشت و فیش را هم از روی پیشخوان برداشت.»',
+          guarded: 'یاشین با لحن رسمی: «ساعت خروج در حافظهٔ من ثبت است؛ حدود ربع ساعت از نیمه‌شب گذشته بود.»',
+        },
+      },
+    ],
+    disclosureRules: [],
+  },
+
+  mani: {
+    npcId: 'mani',
+    nameFa: 'مانی شجاعی',
+    publicFace: 'باریستای تنومند، خوش‌مشرب و کم‌حرف که بیشتر عمل می‌کند تا حرف بزند.',
+    privateFear: 'به خطر افتادن خاطرهٔ دوست فقیدش راتین و زیر سوال رفتن وفاداری‌اش.',
+    desire: 'حفظ آرامش بچه‌های کافه و کمک به حل ماجرا بدون هیاهو.',
+    lieStyle: 'deny',
+    respects: ['حس بویایی قوی و تست فیزیکی مواد', 'صداقت', 'احترام به یاد راتین'],
+    dislikes: ['طعنه و سرکوفت زدن', 'تئوری‌بافی‌های روشنفکری توخالی', 'اتهام دروغین'],
+    roleAffinities: {
+      coffee_alchemist: 2,
+      art_historian: -1,
+      investigator: 0,
+      systems_analyst: 0,
+    },
+    memoryHooks: ['insult_mani_coffee', 'mention_ratin_respectfully', 'accuse_mani'],
+    knowledgeCards: [
+      {
+        id: 'mani_knows_solvent_smell',
+        factIds: ['fact_solvent_smell_cup'],
+        truthMode: 'truth',
+        minTrust: 1,
+        allowedScenes: ['NODE_02', 'NODE_03', 'NODE_04'],
+        dialogueVariants: {
+          cooperative: 'مانی دست از تمیز کردن نازل برمی‌دارد: «این بوی شویندهٔ بار نیست. این تینر روغنی فرّاره که برای پاک کردن لایه‌های رنگ استفاده می‌شه.»',
+          guarded: '«بوی اسپرسوی معمولیه. شاید نازل کمی گرفته بود.»',
+        },
+      },
+    ],
+    disclosureRules: [
+      { condition: 'trust >= 1 || role == coffee_alchemist', revealsKnowledgeCardId: 'mani_knows_solvent_smell' },
+    ],
+  },
+
+  haniyeh: {
+    npcId: 'haniyeh',
+    nameFa: 'حانیه محمدی',
+    publicFace: 'دستیار شاد و خونگرم کافه، مراقب پنتی و تیزبین نسبت به رفتارهای غیرعادی.',
+    privateFear: 'خشونت و آسیب دیدن پنتی یا دوستانش در کافه.',
+    desire: 'تمام شدن سریع و بی‌خطر تنش‌های امشب.',
+    lieStyle: 'joke',
+    respects: ['همدلی عاطفی', 'مهربانی با پنتی', 'شنیدن جزئیات کوچک انسانی'],
+    dislikes: ['خشونت کلامی یا فیزیکی', 'بی‌توجهی به رفتارهای مشکوک', 'نگاه از بالا به پایین'],
+    roleAffinities: {
+      investigator: 1,
+      art_historian: 1,
+      coffee_alchemist: 0,
+      systems_analyst: -1,
+    },
+    memoryHooks: ['kindness_to_penti', 'condescending_to_haniyeh'],
+    knowledgeCards: [
+      {
+        id: 'haniyeh_saw_man_reaction',
+        factIds: ['fact_red_glove_man', 'fact_guest_hesitation'],
+        truthMode: 'truth',
+        minTrust: 0,
+        allowedScenes: ['NODE_02', 'NODE_03', 'NODE_10', 'NODE_15'],
+        dialogueVariants: {
+          cooperative: 'حانیه آرام می‌گوید: «مرد وقتی فنجان را بو کرد، دستکش دست راستش را تکان نداد؛ انگار می‌خواست مطمئن بشه اثری از ماده روی میز نمونه.»',
+          guarded: '«فقط دیدم سریع بلند شد و رفت... حالت عجیبی داشت.»',
+        },
+      },
+    ],
+    disclosureRules: [],
+  },
+
+  collector: {
+    npcId: 'collector',
+    nameFa: 'کلکسیونر (مرد پشت تلفن / نماینده خریدار)',
+    publicFace: 'مردی با نفوذ، با کلامی شمرده و مسلط بر بازارهای عتیقه.',
+    privateFear: 'افشای زنجیرهٔ جعل یا درز کردن اسناد فراتر از حلقهٔ بسته خریداران.',
+    desire: 'تملک بی سر و صدای تابلوی پنتیمنتو در ازای تسویه حساب مالی سخاوتمندانه.',
+    lieStyle: 'attack',
+    respects: ['شناخت دقیق provenance', 'واقع‌گرایی تجاری', 'حفظ اسرار'],
+    dislikes: ['تلاش برای باج‌گیری ناشیانه', 'تهدیدهای توخالی پلیسی'],
+    roleAffinities: {
+      investigator: 1,
+      art_historian: 1,
+      systems_analyst: 0,
+      coffee_alchemist: 0,
+    },
+    memoryHooks: ['collector_bluff_called', 'accepted_financial_settlement', 'threatened_collector'],
+    knowledgeCards: [
+      {
+        id: 'collector_reveals_lot55_motive',
+        factIds: ['fact_collector_settlement_motive', 'fact_invoice_lot55_seal'],
+        truthMode: 'partial',
+        minPressure: 2,
+        allowedScenes: ['NODE_16'],
+        dialogueVariants: {
+          cooperative: '«پلاک ۵۵ صرفاً یک ایستگاه انتقال بود. اگر حقیقت این قاب روشن شود، ارزشی فراتر از این کافه خواهد داشت.»',
+          guarded: '«شما در جایگاهی نیستید که درباره مقاصد من سوال بپرسید.»',
+        },
+      },
+    ],
+    disclosureRules: [],
+  },
+};
+
+export function getNpcRouteCard(npcId: string): NpcRouteCard | undefined {
+  return NPC_ROUTE_CARDS[npcId];
+}
+

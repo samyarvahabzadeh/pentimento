@@ -182,7 +182,16 @@ export function runValidationSuite() {
     const sWit = createInitialRunState(555);
     sWit.canonical.playerClass = role;
     sWit.canonical.currentNode = 'NODE_15';
-    const invResWit = processInvestigationDepth(sWit, 'witness_conflict', 'INTERROGATE_WITNESS_TIME_REFERENCE', 'ساعت دقیق');
+    // Use the same neutral comparison for every role. A player of any role who
+    // explicitly asks the expert clock-reference question may solve it; the
+    // Investigator's advantage is recognizing the conflict one step earlier
+    // from an ordinary statement comparison.
+    const invResWit = processInvestigationDepth(
+      sWit,
+      'witness_conflict',
+      'COMPARE_WITNESS_STATEMENTS',
+      'حرف شاهدها درباره مسیر خروج را با هم مقایسه می‌کنم'
+    );
 
     report.roleComparison[role] = {
       paintingDepthAfter1Turn: invResArt.depthAfter,

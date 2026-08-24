@@ -507,8 +507,454 @@ export interface EndingEvaluationResult {
   evaluatedAtTurn: number;
 }
 
+// ─── Pentimento Redesign v2 Contracts ───────────────────────────
+
+export type ProofDomain = 'ART' | 'CHEM' | 'SYS' | 'SOCIAL' | 'FACTION';
+
+export interface ThreatClocks {
+  evidenceRemoval: number; // 0..4
+  factionPressure: number; // 0..4
+  npcPanic: number;        // 0..4
+  policeAttention: number; // 0..4
+  personalRisk: number;    // 0..4
+}
+
+export interface ApproachStats {
+  art: number;      // 0..5
+  chem: number;     // 0..5
+  systems: number;  // 0..5
+  social: number;   // 0..5
+  risk: number;     // 0..5
+  empathy: number;  // 0..5
+}
+
+export type ActionPrimitive =
+  | 'move'
+  | 'inspect'
+  | 'touch'
+  | 'take'
+  | 'give'
+  | 'hide'
+  | 'use'
+  | 'combine'
+  | 'damage'
+  | 'threaten'
+  | 'persuade'
+  | 'deceive'
+  | 'ask'
+  | 'accuse'
+  | 'follow'
+  | 'wait'
+  | 'listen'
+  | 'smell'
+  | 'taste'
+  | 'distract'
+  | 'steal'
+  | 'protect'
+  | 'reveal'
+  | 'leave'
+  | 'block'
+  | 'lock'
+  | 'record'
+  | 'improvise';
+
+export interface SemanticAction {
+  primitive: ActionPrimitive;
+  target?: string;
+  secondaryTarget?: string;
+  method?: string;
+  motive?: string;
+  rawInput: string;
+  confidence: number;
+  isEmergent?: boolean;
+}
+
+export type CandidateActionKind =
+  | 'inspect'
+  | 'move'
+  | 'ask'
+  | 'pressure'
+  | 'accuse'
+  | 'use'
+  | 'take'
+  | 'leave'
+  | 'wait'
+  | 'theory'
+  | 'other';
+
+export interface Requirement {
+  kind: 'evidence' | 'item' | 'flag' | 'min_trust' | 'min_pressure' | 'role' | 'clock_below' | 'lore_stage';
+  targetId: string;
+  value?: any;
+}
+
+export type CanonicalEffect =
+  | { type: 'add_evidence'; evidenceId: string }
+  | { type: 'add_inventory'; itemId: string }
+  | { type: 'remove_inventory'; itemId: string }
+  | { type: 'set_flag'; flag: string; value: boolean }
+  | { type: 'change_scene'; sceneId: string; nodeId: string }
+  | { type: 'modify_trust'; npcId: string; delta: number }
+  | { type: 'modify_pressure'; npcId: string; delta: number }
+  | { type: 'modify_clock'; clock: keyof ThreatClocks; delta: number; reason: string }
+  | { type: 'add_proof_domain'; domain: ProofDomain; points: number }
+  | { type: 'reveal_lore'; loreId: string }
+  | { type: 'record_memory'; npcId: string; memory: string; tag: string }
+  | { type: 'trigger_ending'; endingId: string; foreshadowId?: string; causeEventId?: string }
+  | { type: 'modify_environment'; key: string; value: any };
+
+export type ObjectProperty =
+  | 'movable'
+  | 'immovable'
+  | 'solid'
+  | 'liquid'
+  | 'breakable'
+  | 'readable'
+  | 'container'
+  | 'electrical'
+  | 'acoustic'
+  | 'reflective'
+  | 'flammable'
+  | 'transparent'
+  | 'lockable'
+  | 'wearable'
+  | 'electronic'
+  | 'living'
+  | 'layered'
+  | 'hot'
+  | 'heavy';
+
+export interface WorldObjectState {
+  location: string;
+  durability?: number;
+  isOpen?: boolean;
+  isLocked?: boolean;
+  isOn?: boolean;
+  isWet?: boolean;
+  isDamaged?: boolean;
+  isTorn?: boolean;
+  temperature?: 'cold' | 'normal' | 'hot';
+  contains?: string[];
+  underneath?: string[];
+  customAttributes?: Record<string, any>;
+}
+
+export interface InspectionProfile {
+  defaultObservation: string;
+  roleModifiers?: Partial<Record<PlayerClassId, string>>;
+  /**
+   * Authored discovery layers.  A generic inspection may describe the surface,
+   * but canonical evidence is awarded only by a matching, undiscovered layer.
+   */
+  discoveries?: InspectionDiscovery[];
+  inaccessibleObservation?: string;
+}
+
+export interface InspectionDiscovery {
+  id: string;
+  observation: string;
+  repeatObservation?: string;
+  primitives?: ActionPrimitive[];
+  inputPatterns?: string[];
+  roles?: PlayerClassId[];
+  requiresEvidence?: string[];
+  requiresAnyEvidence?: string[];
+  requiresDiscoveries?: string[];
+  evidenceIds?: string[];
+  proofDomain?: { domain: ProofDomain; points: number };
+  roleModifiers?: Partial<Record<PlayerClassId, string>>;
+  priority?: number;
+}
+
+export interface LocationDefinition {
+  id: string;
+  nameFa: string;
+  sceneId: string;
+  nodeId: string;
+  reachableFrom: string[];
+  defaultDescription: string;
+  activeEntityIds?: string[];
+  visibleObjectIds?: string[];
+  requiresEvidence?: string[];
+  blockedDescription?: string;
+}
+
+export interface WorldObject {
+  id: string;
+  nameFa: string;
+  properties: ObjectProperty[];
+  affordances: ActionPrimitive[];
+  state: WorldObjectState;
+  inspectionProfile?: InspectionProfile;
+}
+
+export interface NpcGoalProfile {
+  id: string;
+  nameFa: string;
+  goals: string[];
+  fears: string[];
+  loyalties: string[];
+  currentKnowledge: string[];
+  suspicion: number;
+  trust: number;
+  pressureThresholds: {
+    fluster: number;
+    breakdown: number;
+  };
+  behavioralTendencies: string[];
+}
+
+export interface CandidateAction {
+  id: string;
+  kind: CandidateActionKind;
+  targetIds: string[];
+  summary: string;
+  requires?: Requirement[];
+  effects: CanonicalEffect[];
+  narrativeBeatId: string;
+  risk: 0 | 1 | 2 | 3 | 4;
+  roleAffinity?: PlayerClassId[];
+  isExclusiveToRole?: PlayerClassId;
+  isCompound?: boolean;
+  semanticAction?: SemanticAction;
+  isEmergent?: boolean;
+  emergentProse?: string;
+}
+
+export interface DynamicEnvironmentState {
+  doorBlocked?: boolean;
+  guardingEntrance?: boolean;
+  lightsOff?: boolean;
+  recordingActive?: boolean;
+  hiddenItems?: Record<string, string>;
+  modifiedObjects?: Record<string, string>;
+  customDistractions?: string[];
+  delayedPlans?: Array<{ turnScheduled: number; action: SemanticAction; effect: CanonicalEffect }>;
+  discoveredInspectionLayers?: Record<string, string[]>;
+  revealedNpcKnowledge?: Record<string, string[]>;
+  npcTopicHistory?: Record<string, string[]>;
+}
+
+// ─── Episode Situation Layer (v2.7) ─────────────────────────────────
+
+export type SituationFrontId =
+  | 'custodian_extraction'
+  | 'redactor_cleanup'
+  | 'cafe_fracture';
+
+export type SituationRouteId =
+  | 'forensic_chain'
+  | 'social_alliance'
+  | 'misdirection'
+  | 'pursuit'
+  | 'fortification'
+  | 'public_exposure'
+  | 'destruction';
+
+export type SituationCrisisId =
+  | 'painting_extraction'
+  | 'blackout_cleanup'
+  | 'staff_walkout';
+
+export interface SituationFrontState {
+  progress: number; // 0..6. Reaching 6 opens a crisis; it never causes an instant ending.
+  contained: boolean;
+  lastAdvancedPulse: number;
+}
+
+export interface SituationCrisisState {
+  id: SituationCrisisId;
+  frontId: SituationFrontId;
+  openedAtPulse: number;
+  deadlinePulse: number;
+  status: 'open' | 'resolved' | 'costly_success' | 'missed';
+  resolutionRoute?: SituationRouteId;
+}
+
+export interface SituationNpcIntentionState {
+  npcId: string;
+  intentId: string;
+  stage: number;
+  status: 'active' | 'changed' | 'completed' | 'broken';
+  location: string;
+  lastActedPulse: number;
+}
+
+export interface SituationEventRecord {
+  eventId: string;
+  pulse: number;
+  frontId?: SituationFrontId;
+  consequence?: string;
+}
+
+export interface SituationActionRecord {
+  fingerprint: string;
+  pulse: number;
+}
+
+/**
+ * Authored truth + moving opposition.  This is deliberately separate from
+ * currentNode: nodes remain compatibility/scene identifiers, not a golden path.
+ */
+export interface EpisodeSituationState {
+  schemaVersion: '2.7';
+  episodeId: 'episode_01_lot_55';
+  activated: boolean;
+  activatedAtTurn: number;
+  pulse: number;
+  pressurePattern: 'custodian_first' | 'cleanup_first' | 'fracture_first';
+  fronts: Record<SituationFrontId, SituationFrontState>;
+  npcIntentions: Record<string, SituationNpcIntentionState>;
+  routeMarks: SituationRouteId[];
+  leverage: string[];
+  irreversibleConsequences: string[];
+  openCrises: SituationCrisisState[];
+  eventHistory: SituationEventRecord[];
+  actionHistory: SituationActionRecord[];
+}
+
+export interface ClockChange {
+  clock: keyof ThreatClocks;
+  from: number;
+  to: number;
+  reason: string;
+}
+
+export interface MemoryWrite {
+  npcId: string;
+  summary: string;
+  tag: string;
+}
+
+export interface TurnResolution {
+  interpreted: {
+    candidateId: string;
+    confidence: number;
+    speechAct?: string;
+    tone?: string;
+    targetNpc?: string;
+  };
+  acceptedEffects: CanonicalEffect[];
+  rejectedEffects: string[];
+  triggeredBeats: string[];
+  clockChanges: ClockChange[];
+  memoryWrites: MemoryWrite[];
+  endingId?: string;
+}
+
+export interface LoopEcho {
+  id: string;
+  sourceEnding: string;
+  hint: string;
+  unlocksCandidateIds?: string[];
+  maxUses?: number;
+}
+
+export interface LoopMeta {
+  loopCount: number;
+  echoes: string[];
+  seenEndings: string[];
+  activeEchoHints?: string[];
+}
+
+export interface HistoricalFact {
+  id: string;
+  dateOrEra: string;
+  location: string;
+  fact: string;
+  source: string;
+}
+
+export interface FictionalFact {
+  id: string;
+  historicalAnchorId: string;
+  narrativeOverlay: string;
+  symbolMotifs: string[];
+  loreStageRequired: 0 | 1 | 2 | 3;
+}
+
+export interface HistoricalDossier {
+  id: string;
+  name: string;
+  verifiedHistory: HistoricalFact[];
+  fictionalOverlay: FictionalFact[];
+  rumors: string[];
+  forbiddenClaims: string[];
+}
+
+export interface HistoricalLoreCard {
+  id: string;
+  classification: 'verified_history' | 'fictional_overlay' | 'rumor' | 'player_theory';
+  title: string;
+  safeText: string;
+  revealed: boolean;
+  stage: 0 | 1 | 2 | 3;
+  forbiddenInferences: string[];
+}
+
+export interface KnowledgeCard {
+  id: string;
+  factIds: string[];
+  truthMode: 'truth' | 'partial' | 'lie' | 'misremembered';
+  minTrust?: number;
+  minPressure?: number;
+  requiresEvidence?: string[];
+  allowedScenes: string[];
+  dialogueVariants: {
+    cooperative: string;
+    guarded: string;
+    irritated?: string;
+    pressured?: string;
+  };
+}
+
+export interface DisclosureRule {
+  condition: string;
+  revealsKnowledgeCardId: string;
+}
+
+export interface NpcRouteCard {
+  npcId: string;
+  nameFa: string;
+  publicFace: string;
+  privateFear: string;
+  desire: string;
+  lieStyle: 'deny' | 'redirect' | 'joke' | 'attack' | 'partial_truth';
+  respects: string[];
+  dislikes: string[];
+  knowledgeCards: KnowledgeCard[];
+  disclosureRules: DisclosureRule[];
+  roleAffinities: Partial<Record<PlayerClassId, number>>;
+  memoryHooks: string[];
+}
+
+export interface CandidateItemForRanker {
+  id: string;
+  summary: string;
+  kind: CandidateActionKind;
+  targetIds?: string[];
+}
+
+export interface TurnRankerPacket {
+  sceneId: string;
+  role: PlayerClassId;
+  playerText: string;
+  recentBeats: string[];
+  visibleTargets: string[];
+  presentNpcs: string[];
+  candidates: CandidateItemForRanker[];
+}
+
+export interface IntentRankerOutput {
+  candidateId: string;
+  confidence: number;
+  speechAct?: string;
+  tone?: string;
+  targetNpc?: string;
+}
+
 export interface RunState {
-  version: 1;
+  version: 1 | 2;
   canonical: CanonicalRunState;
   scene: SceneState;
   npcMemory: Record<string, NpcMemory>;
@@ -532,6 +978,55 @@ export interface RunState {
   archiveWorkspace?: ArchiveWorkspaceState;
   preservationProfile?: PreservationProfile;
   endingEvaluation?: EndingEvaluationResult;
+
+  // V2 Fields
+  proofDomains?: Record<ProofDomain, number>;
+  approachStats?: ApproachStats;
+  clocks?: ThreatClocks;
+  loopMeta?: LoopMeta;
+  revealedLore?: string[];
+  redGloveLoreStage?: 0 | 1 | 2 | 3;
+  npcTrust?: Record<string, number>;
+  npcPressure?: Record<string, number>;
+  activeTurnResolution?: TurnResolution;
+  environmentState?: DynamicEnvironmentState;
+  worldObjects?: Record<string, WorldObject>;
+  npcGoalProfiles?: Record<string, NpcGoalProfile>;
+  /** Persisted audit record for the most recently resolved player input. */
+  lastTurnTrace?: ResolvedTurnTrace;
+  /** Living episode state: factions and NPC plans advance independently of nodes. */
+  situation?: EpisodeSituationState;
+}
+
+export interface ResolvedTurnTrace {
+  rawInput: string;
+  primitive?: string;
+  target?: string;
+  secondaryTarget?: string;
+  sceneBefore: string;
+  sceneAfter: string;
+  selectedCandidateId?: string;
+  resolutionPath:
+    | 'generic_location_transition'
+    | 'generic_entity_inspection'
+    | 'generic_npc_interaction'
+    | 'special_authored_candidate'
+    | 'deterministic'
+    | 'semantic'
+    | 'llm'
+    | 'compound_sequence'
+    | 'fallback';
+  specialCandidateUsed: boolean;
+  stateChanges: string[];
+  evidenceAdded: string[];
+  evidenceRemoved: string[];
+  inventoryAdded: string[];
+  flagsAdded: string[];
+  proofDelta: Partial<Record<ProofDomain, number>>;
+  subtraces?: ResolvedTurnTrace[];
+  situationEvents?: string[];
+  situationRoutesAdded?: SituationRouteId[];
+  fallbackUsed: boolean;
 }
 
 export interface ValidationResult {
@@ -550,6 +1045,7 @@ export interface ResolvedTurn {
   validation: ValidationResult;
   stateBefore: RunState;
   stateAfter: RunState;
+  _debugInfo?: any;
 }
 
 export interface ActiveNpcPersona {

@@ -64,7 +64,7 @@ export function detectTheoryCategory(input: string): TheoryCategory | undefined 
   if (/تازه.*جایگزین|تازه.*آورده|چیزی.*جاش|عوض.*شده|تعویض.*جعبه|جعبه.*جدید/.test(input)) {
     return 'box_replacement';
   }
-  if (/حتماً.*انجمن|کار.*دشمن|توطئه.*انجمن|سازمان.*مخفی|دستور.*انجمن|کار.*انجمن/.test(input)) {
+  if (/حتماً.*(انجمن|دستکش|شبکه)|کار.*(دستکش|انجمن)|توطئه.*(دستکش|انجمن)|سازمان.*مخفی|فرقه.*دستکش/.test(input)) {
     return 'unsupported_conspiracy';
   }
   if (/رمز.*گاوصندوق|کد.*گاوصندوق|ترکیب.*رمز|رمز.*(چهار|۴)|رمز.*چرخشی/.test(input)) {
