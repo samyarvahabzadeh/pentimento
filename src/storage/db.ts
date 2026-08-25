@@ -50,6 +50,12 @@ function getDb() {
       importance INTEGER NOT NULL,
       turn INTEGER NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS access_grants (
+      telegramUserId TEXT PRIMARY KEY,
+      credentialFingerprint TEXT NOT NULL,
+      grantedAt TEXT DEFAULT (datetime('now')),
+      updatedAt TEXT DEFAULT (datetime('now'))
+    );
   `);
   return db;
 }
@@ -57,6 +63,7 @@ function getDb() {
 // ─── In-memory fallback (only if node:sqlite truly unavailable) ───────────────
 const memRuns = new Map<string, { telegramUserId: string | null; state: RunState }>();
 const memEvents: any[] = [];
+const memAccessGrants = new Map<string, string>();
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
@@ -133,6 +140,45 @@ export function resetAllRuns(): void {
   d.prepare('DELETE FROM runs').run();
   d.prepare('DELETE FROM events').run();
   d.prepare('DELETE FROM memories').run();
+}
+
+/**
+ * Access grants are intentionally separate from runs: restarting or clearing
+ * story state must not unexpectedly log every invited tester out.  A grant is
+ * valid only for the fingerprint of the currently configured password, so a
+ * password rotation invalidates old grants without storing the password.
+ */
+export function isAccessGranted(telegramUserId: string, credentialFingerprint: string): boolean {
+  const d = getDb();
+  if (!d) return memAccessGrants.get(telegramUserId) === credentialFingerprint;
+  const row = d.prepare(
+    'SELECT credentialFingerprint FROM access_grants WHERE telegramUserId = ?'
+  ).get(telegramUserId) as { credentialFingerprint: string } | undefined;
+  return row?.credentialFingerprint === credentialFingerprint;
+}
+
+export function grantAccess(telegramUserId: string, credentialFingerprint: string): void {
+  const d = getDb();
+  if (!d) {
+    memAccessGrants.set(telegramUserId, credentialFingerprint);
+    return;
+  }
+  d.prepare(`
+    INSERT INTO access_grants (telegramUserId, credentialFingerprint)
+    VALUES (?, ?)
+    ON CONFLICT(telegramUserId) DO UPDATE SET
+      credentialFingerprint = excluded.credentialFingerprint,
+      updatedAt = datetime('now')
+  `).run(telegramUserId, credentialFingerprint);
+}
+
+export function revokeAccess(telegramUserId: string): void {
+  const d = getDb();
+  if (!d) {
+    memAccessGrants.delete(telegramUserId);
+    return;
+  }
+  d.prepare('DELETE FROM access_grants WHERE telegramUserId = ?').run(telegramUserId);
 }
 
 export function appendEventToDb(id: string, runId: string, type: string, turn: number, data: object): void {

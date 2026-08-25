@@ -37,6 +37,12 @@ function main(): void {
     if (/TELEGRAM_BOT_TOKEN[\s\S]{0,80}["']\d{6,}:[A-Za-z0-9_-]{20,}["']/i.test(text)) {
       violations.push(`${relativePath}: hard-coded bot token`);
     }
+    if (/PENTIMENTO_ACCESS_PASSWORD\s*=\s*["'][^"']{8,}["']/i.test(text)) {
+      violations.push(`${relativePath}: hard-coded private-alpha password`);
+    }
+    if (relativePath === 'src/telegram/bot.ts' && /Incoming update[^\n]*(?:messageText|ctx\.message\.text|\$\{text\})/.test(text)) {
+      violations.push(`${relativePath}: raw incoming Telegram text may be logged`);
+    }
   }
 
   assert.deepEqual(violations, [], `source credential hygiene violations:\n${violations.join('\n')}`);
@@ -44,4 +50,3 @@ function main(): void {
 }
 
 main();
-

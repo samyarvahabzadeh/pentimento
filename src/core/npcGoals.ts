@@ -36,7 +36,13 @@ export const INITIAL_NPC_GOAL_PROFILES: Record<string, NpcGoalProfile> = {
     suspicion: 15,
     trust: 0,
     pressureThresholds: { fluster: 2, breakdown: 4 },
-    behavioralTendencies: ['در برابر پرسش‌های زمانی دقیق پاسخ می‌دهد', 'از متهم شدن بدون سند آشفته می‌شود'],
+    behavioralTendencies: [
+      'سلام را با «درود بر شما» آغاز می‌کند',
+      'دانستنی‌ها را با «شما می‌دونستید...» قاب می‌گیرد',
+      'اصلاح را با «خیر» شروع می‌کند و بعد نسخهٔ خودش را می‌گوید',
+      'در فیفا با اعتمادبه‌نفس اغراق می‌کند',
+      'فقط در دانش قهوه و ثبت مستقیم شیفت واقعاً قابل اتکاست',
+    ],
   },
   haniyeh: {
     id: 'haniyeh',
@@ -68,13 +74,75 @@ export function createInitialNpcGoalProfiles(): Record<string, NpcGoalProfile> {
   return JSON.parse(JSON.stringify(INITIAL_NPC_GOAL_PROFILES));
 }
 
+type NpcReactionResult = {
+  responseProse: string;
+  suspicionDelta: number;
+  trustDelta: number;
+  clockDelta?: { clock: any; delta: number };
+  revealedFactIds?: string[];
+  proofPoints?: number;
+  setFlags?: string[];
+};
+
+function firstFlag(state: RunState, flag: string): string[] {
+  return state.canonical.canonicalFlags.includes(flag) ? [] : [flag];
+}
+
+/**
+ * Yashin's real-world mannerisms are executable dialogue policy, not flavour
+ * prose in a bible.  Only coffee expertise and things he directly registered
+ * during the shift may become evidence; FIFA boasts and general-knowledge
+ * claims are explicitly framed as character claims.
+ */
+function evaluateYashinPersonalVoice(raw: string, state: RunState): NpcReactionResult | undefined {
+  if (/فیفا|fifa|پلی\s*استیشن|پلی‌استیشن|کنسول|بازی\s*فوتبال/.test(raw)) {
+    return {
+      responseProse: 'یاشین لبخند مطمئنی می‌زند و آستینش را صاف می‌کند: «خیر. سؤال درست این نیست که من توی فیفا خوبم یا نه؛ سؤال اینه که شما تا دقیقهٔ چند می‌تونید جلوی من نتیجه رو نگه دارید. مانی هنوز باخت قبلیش رو گردنِ لگ می‌اندازه.» این فقط ادعای خود یاشین دربارهٔ خودش است؛ هیچ چیزی از پرونده را ثابت نمی‌کند.',
+      suspicionDelta: 0,
+      trustDelta: 0,
+      setFlags: firstFlag(state, 'yashin_fifa_boast_heard'),
+    };
+  }
+
+  const coffeeTechnique = /(?:قهوه|اسپرسو|رست|دان|عصاره|آسیاب|کرما|اسیدیته|دم‌آوری|اروپرس|کمکس|v60|وی\s*شصت).*(?:چطور|چجوری|چرا|بهتر|درست|نسبت|دما|زمان|چی|تاریخ|می‌?دون)|(?:نسبت|دما|آسیاب|عصاره|رست).*(?:قهوه|اسپرسو)/.test(raw);
+  if (coffeeTechnique) {
+    return {
+      responseProse: 'یاشین بی‌اختیار جدی‌تر می‌ایستد: «شما می‌دونستید نسبتِ حدود یک‌به‌دو برای اسپرسو فقط نقطهٔ شروعه؟ دوز، خروجی، زمان، دما و درجهٔ آسیاب باید با رست و مزه‌ای که واقعاً توی فنجون می‌گیری تنظیم بشه؛ عدد ثابت جای چشیدن رو نمی‌گیره.» این بار لحن مطمئنش پشتوانه دارد؛ دربارهٔ قهوه با احتیاط میان قاعده و متغیر فرق می‌گذارد.',
+      suspicionDelta: 0,
+      trustDelta: 1,
+      setFlags: firstFlag(state, 'yashin_coffee_expertise_witnessed'),
+    };
+  }
+
+  if (/تاریخ|رنسانس|فلورانس|روم|یونان|زئوس|قاجار|صفوی|پادشاه|جنگ|دانستنی|اطلاعات\s*عمومی/.test(raw)) {
+    return {
+      responseProse: 'یاشین بدون مکث جواب می‌دهد: «خیر. نسخه‌ای که معمولاً تعریف می‌کنن زیادی کتابیه؛ اصل ماجرا این بود که بانکدارها رنسانس رو راه انداختن و هنرمندها بعداً براش اسم ساختن.» جمله را چنان قطعی می‌گوید که انگار پاورقی‌اش را حفظ است، اما منبعی ندارد و چند دوره و علت متفاوت را در یک نتیجهٔ خوش‌صدا فشرده کرده؛ این ادعا سرنخ پرونده نیست.',
+      suspicionDelta: 0,
+      trustDelta: 0,
+      setFlags: firstFlag(state, 'yashin_outside_domain_claim_heard'),
+    };
+  }
+
+  const directCorrection = /(?:یاشین.*(?:فکر\s*می‌?کنم|به\s*نظرم|اشتباه|درست\s*نیست)|(?:به|از)\s*یاشین.*(?:می‌?گم|می‌?گویم).*(?:که|فکر)|تو\s*گفتی|مگه\s*نه)/.test(raw);
+  if (directCorrection) {
+    return {
+      responseProse: 'یاشین قبل از تمام شدن جمله‌ات آرام می‌گوید: «خیر.» بعد نسخهٔ خودش را با همان اعتمادبه‌نفس مرتب می‌کند و در پایان اضافه می‌کند: «اگر دربارهٔ قهوه یا چیزی که خودم امشب ثبت کردم حرف می‌زنیم، عدد و شاهد می‌ذارم؛ بقیه‌ش برداشت منه.» برای نخستین بار مرز دانسته و ادعایش را—هرچند با اکراه—روشن می‌کند.',
+      suspicionDelta: 0,
+      trustDelta: 0,
+      setFlags: firstFlag(state, 'yashin_correction_tic_heard'),
+    };
+  }
+
+  return undefined;
+}
+
 export function evaluateNpcReaction(
   npcId: string,
   primitive: ActionPrimitive,
   target: string | undefined,
   method: string | undefined,
   state: RunState
-): { responseProse: string; suspicionDelta: number; trustDelta: number; clockDelta?: { clock: any; delta: number }; revealedFactIds?: string[]; proofPoints?: number; setFlags?: string[] } {
+): NpcReactionResult {
   const profile = state.npcGoalProfiles?.[npcId] ?? INITIAL_NPC_GOAL_PROFILES[npcId];
   if (!profile) {
     return { responseProse: 'شخص مقابل با سکوت نگاهت می‌کند.', suspicionDelta: 0, trustDelta: 0 };
@@ -158,7 +226,7 @@ export function evaluateNpcReaction(
     if (/^(?:\s)*(?:سلام|درود|خسته\s*نباشید|شب\s*بخیر)(?:[،,!\s]|$)/.test(raw)) {
       const greetings: Record<string, string> = {
         haniyeh: 'حانیه با وجود نگرانی لبخند کوتاهی می‌زند: «سلام. ببخش اگه اوضاع عادی نیست؛ امشب میز پنج همه‌مون رو به‌هم ریخته.»',
-        yashin: 'یاشین دست از مرتب‌کردن فنجان‌ها می‌کشد: «سلام، خوش اومدی. اگر چیزی می‌خوای بگو؛ فقط امشب کمی سرمون شلوغ‌تر از معمول شده.»',
+        yashin: 'یاشین دست از مرتب‌کردن فنجان‌ها می‌کشد و با وقار کوتاهی سر خم می‌کند: «درود بر شما.» بعد انگار همین سلام هم مقدمهٔ یک آزمون است، نگاهش را منتظر نگه می‌دارد.',
         mani: 'مانی با تکان سر جواب می‌دهد: «سلام رفیق. پشت بار شلوغه، ولی صدات رو می‌شنوم.»',
         salar: state.canonical.canonicalFlags.includes('player_salar_old_friend')
           ? 'سالار نگاهش را بالا می‌آورد؛ برای یک لحظه اضطراب جایش را به آشنایی قدیمی می‌دهد: «سلام... ممنون که واقعاً اومدی. باید قبل از اینکه دیر بشه باهات حرف بزنم.»'
@@ -172,7 +240,7 @@ export function evaluateNpcReaction(
     if (isDrinkOrder && ['haniyeh', 'yashin', 'mani'].includes(npcId)) {
       const orderResponses: Record<string, string> = {
         haniyeh: 'حانیه سفارش را روی تبلت ثبت می‌کند: «یه اسپرسو؛ چشم. فقط اون فنجون روی میز پنج سفارش تو نیست—بهش دست نزن تا یاشین سفارشت رو بیاره.» بعد یک نعلبکی تمیز را کنار دست راستت می‌گذارد تا دو سفارش با هم قاطی نشوند.',
-        yashin: 'یاشین یک فنجان تمیز از گرم‌کن برمی‌دارد: «یه اسپرسوی تازه برات می‌زنم. فنجون میز پنج رو با این قاطی نکن؛ اون از قبل اینجا مونده.»',
+        yashin: 'یاشین یک فنجان تمیز از گرم‌کن برمی‌دارد: «درود بر شما. یک اسپرسوی تازه می‌زنم؛ فنجون میز پنج رو با این قاطی نکنید، اون از قبل اینجا مونده.» قبل از چرخاندن آسیاب اضافه می‌کند: «شما می‌دونستید گرم‌کردن فنجون برای ثبات دماست، نه داغ‌کردن بی‌دلیل نوشیدنی؟»',
         mani: 'مانی سر تکان می‌دهد و پرتافیلتر تمیزی را جا می‌زند: «باشه رفیق؛ این یکی جلوی چشم خودت آماده می‌شه.»',
       };
       return {
@@ -255,6 +323,11 @@ export function evaluateNpcReaction(
     if (!state.environmentState) state.environmentState = {};
     if (!state.environmentState.revealedNpcKnowledge) state.environmentState.revealedNpcKnowledge = {};
     if (!state.environmentState.npcTopicHistory) state.environmentState.npcTopicHistory = {};
+
+    if (npcId === 'yashin') {
+      const personalVoice = evaluateYashinPersonalVoice(raw, state);
+      if (personalVoice) return personalVoice;
+    }
 
     // Requests about safety, backups, and division of responsibility are
     // character decisions, not failed clue queries. They can create a durable
@@ -359,7 +432,7 @@ export function evaluateNpcReaction(
     const publicResponses: Record<string, string> = {
       haniyeh: 'حانیه تبلت را پایین می‌آورد: «اگر فقط دنبال جواب پرونده‌ای، سؤال دقیق بپرس. اگر می‌خوای من هم کاری بکنم، بگو چه خطری را قبول می‌کنی و چه اختیاری برای من می‌ماند.»',
       mani: 'مانی دستمال را روی شانه می‌اندازد: «من دستگاه پاسخ‌گویی نیستم. یک کار مشخص یا آزمایش منصفانه پیشنهاد بده؛ بعد می‌بینی طرف چه کسی می‌ایستم.»',
-      yashin: 'یاشین خودکار را بین انگشت‌هایش می‌چرخاند: «حدس را می‌شنوم، ولی اگر از من همکاری می‌خواهی بگو چه چیزی را مستقل ثبت کنم و چه کسی مسئول نتیجه است.»',
+      yashin: 'یاشین خودکار را بین انگشت‌هایش می‌چرخاند: «خیر. حدس با ثبت فرق داره؛ اگر از من همکاری می‌خواید بگید چه چیزی رو مستقل ثبت کنم و چه کسی مسئول نتیجه‌ست.» پاسخ را طوری می‌بندد که انگار صورت سؤال از اول اشتباه بوده است.',
       salar: 'سالار درِ زونکن را نیمه‌باز نگه می‌دارد: «من می‌تونم جواب بدم، معامله کنم یا کنترل رو واگذار کنم. تو باید روشن کنی کدام را از من می‌خواهی.»',
       collector: 'نمایندهٔ خریدار می‌گوید: «پرسش عمومی پاسخ عمومی دارد. یک خواسته، تهدید یا دارایی مشخص روی میز بگذارید.»',
     };

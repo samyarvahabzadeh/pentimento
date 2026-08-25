@@ -113,20 +113,21 @@ export const CHARACTER_BIBLE: Record<string, CharacterProfile> = {
     id: 'yashin',
     formalName: 'یاشین شجاعی',
     publicCalling: 'یاشین',
-    coreArchetype: 'The Young King (خودانگاره Zeus؛ محاوره‌ای باکلاس با واژگان قوی و پرستیژ بالا؛ شروع با «درود» و طرح سوال چالشی، سپس پاسخ با «خیر.» و ارائه فکت دقیق تخصصی قهوه و تاریخ؛ کنایه‌های شیک در صورت بی‌محلی)',
+    coreArchetype: 'The Young King (خودانگاره Zeus؛ محاوره‌ای باکلاس با واژگان قوی و پرستیژ بالا؛ سلام ثابت «درود بر شما»، دانستنی با «شما می‌دونستید...؟»، اصلاح با «خیر.» و بعد نسخهٔ شخصی خودش؛ قهوه تنها حوزه‌ای است که دانسته‌هایش دقیق و کامل‌اند، بیرون آن با اطمینان بیش از دانش حرف می‌زند و در فیفا لاف قهرمانی می‌زند)',
     lifePoolThreads: [
       { id: 'yashin_yemen_roast_test', topic: 'coffee_roast', summary: 'نمونه رست جدید با اسیدیته میوه‌ای را تست کرده و مشتاق توضیح تخصصی آن است.' },
       { id: 'yashin_coffee_lineage_article', topic: 'coffee_history', summary: 'مقاله‌ای درباره تجارت قدیمی قهوه و خانواده‌های یمنی خوانده و در ذهن دارد.' },
       { id: 'yashin_aroma_focus', topic: 'perfume_aroma', summary: 'روی تداخل بوی عطرهای تند با فضای آروماتیک قهوه‌های بار حساس شده است.' },
       { id: 'yashin_football_regret', topic: 'football_injury', summary: 'با حسرت ملایمی از دوران قبل از آسیب‌دیدگی زانو و بازی فوتبال یاد می‌کند.' },
+      { id: 'yashin_fifa_throne', topic: 'fifa_boast', summary: 'در فیفا خودش را شکست‌ناپذیر می‌داند؛ هر باخت را گرم‌نکردن، لگ یا فرصت دادن به حریف تعبیر می‌کند و برای بازی بعدی فوراً کری می‌خواند.' },
     ],
-    socialWeakness: 'Confident Misinformation — بیان دانستههای نیمه‌مطمئن و شنیده‌ها با اعتمادبه‌نفس بالا خارج از حوزه قهوه.',
+    socialWeakness: 'Confident Misinformation — بیان دانسته‌های نیمه‌مطمئن و شنیده‌ها با اعتمادبه‌نفس بالا خارج از حوزهٔ قهوه.',
     reactionToDanger: 'تلاش برای حفظ پرستیژ و کنترل موقعیت از طریق استدلال و پرسشگری.',
     latentMechanic: {
       name: 'Sensory Coffee Provenance & Anchor Question',
       description: 'تشخیص فوق‌تخصصی دانه‌ها، فرآوری و اصالت قهوه؛ طرح سؤال «شما می‌دونستید...؟» برای هدایت مکالمه.',
       triggerPrerequisites: 'Examine coffee beans, sensory tasting, or barista dialogue',
-      constraints: 'در حوزه عمومی ممکن است اطلاعات ناقص را با اعتمادبه‌نفس بگوید؛ این‌ها سرنخ پرونده نیستند.',
+      constraints: 'فقط دانش فنی قهوه و رویدادی که خودش مستقیم در شیفت ثبت کرده قابل اتکاست. تاریخ و اطلاعات عمومی‌اش ناقص یا ساده‌سازی‌شده است، کری فیفا ادعای شخصی است و هیچ‌کدام سرنخ پرونده نیستند.',
     },
     specialStoryHooks: ['Coffee Provenance Inconsistency', 'Zeus Correction Clash with Mani'],
   },
@@ -239,7 +240,7 @@ export const NPC_ROUTE_CARDS: Record<string, NpcRouteCard> = {
   yashin: {
     npcId: 'yashin',
     nameFa: 'یاشین شجاعی',
-    publicFace: 'باریستای مسلط، شیک‌پوش، مبادی آداب و بسیار حساس به کیفیت قهوه.',
+    publicFace: 'باریستای مسلط و شیک‌پوشی که با «درود بر شما» وارد گفتگو می‌شود، با «خیر» تصحیح می‌کند و دانستنی‌هایش را مثل سؤال امتحانی ارائه می‌دهد.',
     privateFear: 'بروز نقص فنی یا آسیب‌دیدگی در حریم بار و متهم شدن به بی‌دقتی.',
     desire: 'اثبات برتری استانداردهای حرفه‌ای و محافظت از برادرش مانی.',
     lieStyle: 'redirect',
@@ -260,8 +261,8 @@ export const NPC_ROUTE_CARDS: Record<string, NpcRouteCard> = {
         minTrust: 0,
         allowedScenes: ['NODE_02', 'NODE_03', 'NODE_04', 'NODE_05'],
         dialogueVariants: {
-          cooperative: 'یاشین سر تکان می‌دهد: «دقیقاً ساعت ۰۰:۱۷ بود. مرد پالتوپوش فنجان را تقریباً دست‌نخورده گذاشت و فیش را هم از روی پیشخوان برداشت.»',
-          guarded: 'یاشین با لحن رسمی: «ساعت خروج در حافظهٔ من ثبت است؛ حدود ربع ساعت از نیمه‌شب گذشته بود.»',
+          cooperative: 'یاشین سر تکان می‌دهد: «خیر؛ حدود ربع ساعت دقیق نیست. ساعت دستگاه ۰۰:۱۷ بود. مرد پالتوپوش فنجون رو تقریباً دست‌نخورده گذاشت و فیش رو هم از روی پیشخوان برداشت.» این بخش را از ثبت مستقیم شیفت می‌گوید، نه از دانستنی‌های عمومی‌اش.',
+          guarded: 'یاشین با لحن رسمی می‌گوید: «خیر. بدون کنار هم گذاشتن ساعت پوز و چاپ، عدد قطعی نمی‌دم؛ حدود ربع ساعت از نیمه‌شب گذشته بود.»',
         },
       },
     ],
@@ -370,4 +371,3 @@ export const NPC_ROUTE_CARDS: Record<string, NpcRouteCard> = {
 export function getNpcRouteCard(npcId: string): NpcRouteCard | undefined {
   return NPC_ROUTE_CARDS[npcId];
 }
-

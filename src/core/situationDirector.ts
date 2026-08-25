@@ -114,6 +114,10 @@ function shouldRunSituation(state: RunState): boolean {
 
 function classifyTopic(raw: string): string {
   if (/سفارش|(?:یه|یک)\s*(?:قهوه|اسپرسو)|(?:قهوه|اسپرسو).*(?:می‌?خوام|می‌?خواهم|بیار)/.test(raw)) return 'service_order';
+  if (/فیفا|fifa|پلی\s*استیشن|پلی‌استیشن|کنسول|بازی\s*فوتبال/.test(raw)) return 'yashin_fifa';
+  if (/(?:قهوه|اسپرسو|رست|دان|عصاره|آسیاب|کرما|اسیدیته|دم‌آوری|اروپرس|کمکس|v60|وی\s*شصت).*(?:چطور|چجوری|چرا|بهتر|درست|نسبت|دما|زمان|چی|تاریخ|می‌?دون)|(?:نسبت|دما|آسیاب|عصاره|رست).*(?:قهوه|اسپرسو)/.test(raw)) return 'coffee_technique';
+  if (/تاریخ|رنسانس|فلورانس|روم|یونان|زئوس|قاجار|صفوی|پادشاه|جنگ|دانستنی|اطلاعات\s*عمومی/.test(raw)) return 'general_history';
+  if (/تو\s*گفتی|اشتباه|درست\s*نیست|مگه\s*نه|به\s*نظرم/.test(raw)) return 'correction';
   if (/پنتی|گربه/.test(raw)) return 'penti';
   if (/کجا|کجاست/.test(raw)) return 'whereabouts';
   if (/زنگ|تماس|تلفن|پیام/.test(raw) && /رسیدم|اومدم|آمدم|اینجام/.test(raw)) return 'arrival';
@@ -170,12 +174,31 @@ function repeatNpcNarrative(
   npcId: string,
   repeatCount: number,
   state: RunState,
+  topic: string,
 ): string {
   const situation = state.situation!;
   const intention = situation.npcIntentions[npcId];
   if (intention) {
     intention.stage += 1;
     intention.lastActedPulse = situation.pulse;
+  }
+
+  if (npcId === 'yashin' && topic === 'yashin_fifa') {
+    return repeatCount >= 2
+      ? 'یاشین بدون ذره‌ای عقب‌نشینی می‌گوید: «خیر. تکرار سؤال نتیجه رو عوض نمی‌کنه؛ بعدِ شیفت دسته رو بردارید تا اختلاف در زمین حل بشه.» مانی از کنار دستگاه فقط می‌خندد. لاف یاشین بزرگ‌تر شده، اما هنوز چیزی بیش از ادعای خودش نیست.'
+      : 'یاشین لبخندش را جمع نمی‌کند: «خیر. اون باختی که شنیدید مسابقه نبود؛ داشتم اجازه می‌دادم مانی تنظیمات رو یاد بگیره.» با یک جملهٔ تازه همان ادعای شکست‌ناپذیری را نگه می‌دارد و برای بازی بعد از شیفت کری می‌خواند.';
+  }
+
+  if (npcId === 'yashin' && topic === 'coffee_technique') {
+    return repeatCount >= 2
+      ? 'یاشین ترازو را جلو می‌کشد: «شما می‌دونستید بدون وزن‌کردنِ ورودی و خروجی، بحث زمان نصفه‌ست؟ دوز و خروجی رو ثابت کنید؛ بعد آسیاب رو با مزه عوض می‌کنیم، نه با خرافه.» این بار به‌جای تکرار دانستنی، یک آزمایش قابل سنجش پیشنهاد می‌دهد.'
+      : 'یاشین می‌گوید: «خیر؛ جواب قبلی نسخهٔ ثابت نبود. بگید ترشیِ خام می‌گیرید، تلخیِ خشک یا رقیق‌شدن بدنه؛ هرکدوم متغیر متفاوتی رو متهم می‌کنه.» دانش قهوه‌اش با سؤال دقیق‌تر می‌شود، نه با تکرار همان جمله.';
+  }
+
+  if (npcId === 'yashin' && (topic === 'general_history' || topic === 'correction')) {
+    return repeatCount >= 2
+      ? 'یاشین باز هم با «خیر» شروع می‌کند، اما این بار وقتی از او منبع می‌خواهی مکث می‌کند: «منبعش الان همراهم نیست؛ چیزی بود که خونده بودم.» اعتمادبه‌نفسش سر جایش است، ولی روایت عمومی‌اش را نمی‌توان به‌جای شاهد یا سند وارد پرونده کرد.'
+      : 'یاشین ابرو بالا می‌اندازد: «خیر. من نگفتم روایت کامل بود؛ گفتم نسخه‌ایه که بیشتر از بقیه به واقعیت می‌خوره.» به‌جای تکرار همان دانستنی، مرز آن را عقب می‌برد. هنوز منبعی روی میز نیست.';
   }
 
   if (repeatCount >= 2) {
@@ -966,7 +989,7 @@ export function advanceEpisodeSituation(
     previousMatches > 0 &&
     ['ask', 'persuade', 'threaten', 'accuse', 'deceive'].includes(context.primitive)
   ) {
-    outcome.narrativeOverride = repeatNpcNarrative(npcId, previousMatches, state);
+    outcome.narrativeOverride = repeatNpcNarrative(npcId, previousMatches, state, classifyTopic(context.rawInput));
   }
 
   if (context.actionSucceeded) {
