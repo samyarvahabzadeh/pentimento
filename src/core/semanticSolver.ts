@@ -18,6 +18,60 @@ export interface SemanticSolverResult {
   reasonIfFailed?: string;
 }
 
+type CourierConversationTopic =
+  | 'acknowledgement'
+  | 'handoff_object'
+  | 'purpose'
+  | 'receipt'
+  | 'employer'
+  | 'salar'
+  | 'identity'
+  | 'departure'
+  | 'opening_hours'
+  | 'general';
+
+function classifyCourierConversationTopic(raw: string): CourierConversationTopic {
+  if (/ممنون|مرسی|متشکرم|تشکر/.test(raw)) return 'acknowledgement';
+  if (/(?:چی|چه\s*چیز|کدوم\s*چیز).*(?:پس|تحویل|بگیر)|(?:پس|تحویل).*(?:چی|چه\s*چیز)|چی\s*رو/.test(raw)) return 'handoff_object';
+  if (/رسید|فیش|کاغذ.*(?:خیس|نم)|ساعت.*رسید/.test(raw)) return 'receipt';
+  if (/کی.*(?:فرستاد|فرستاده)|برای\s*کی\s*کار|رئیست|کارفرما|دستور.*کی/.test(raw)) return 'employer';
+  if (/سالار|صالحی|صاحب.*کافه/.test(raw)) return 'salar';
+  if (/اسم|کی\s*هستی|کیستی|اسمت|نامت/.test(raw)) return 'identity';
+  if (/چرا.*(?:می‌?ری|میری|می‌?روی|داری.*می‌?ری)|تو\s*خودت.*چرا|این\s*سرما|چرا.*رفتن/.test(raw)) return 'departure';
+  if (
+    /(?:اینجا|این\s*وقت|نیمه\s*شب).*(?:چه\s*کار|چی\s*کار|برای\s*چی)|(?:چه\s*کار|چی\s*کار|برای\s*چی).*(?:اینجا|این\s*وقت|نیمه\s*شب)|چرا.*اینجا|دنبال\s*چی/.test(raw)
+  ) return 'purpose';
+  if (/چرا.*(?:باز|هنوز)|هنوز.*باز|چه\s*جور\s*جایی|اینجا\s*چه\s*جور/.test(raw)) return 'opening_hours';
+  return 'general';
+}
+
+function rememberCourierTopic(
+  state: RunState,
+  topic: CourierConversationTopic,
+  effects: CanonicalEffect[],
+): boolean {
+  const environment = state.environmentState ?? (state.environmentState = {});
+  const topicMap = environment.npcTopicHistory ?? (environment.npcTopicHistory = {});
+  const history = topicMap.exiting_man ?? [];
+  const repeated = history.includes(topic);
+  if (!repeated) {
+    history.push(topic);
+    topicMap.exiting_man = history;
+    effects.push({ type: 'modify_environment', key: 'npcTopicHistory', value: topicMap });
+  }
+  return repeated;
+}
+
+function persistCourierFlag(
+  state: RunState,
+  flag: string | undefined,
+  effects: CanonicalEffect[],
+): void {
+  if (!flag || state.canonical.canonicalFlags.includes(flag)) return;
+  state.canonical.canonicalFlags.push(flag);
+  effects.push({ type: 'set_flag', flag, value: true });
+}
+
 /**
  * Generic World Physics, Affordance, and Social Simulator.
  * Resolves (Primitive × Target × Method × WorldState).
@@ -109,39 +163,62 @@ export function solveSemanticAction(
 
     if (matchedNpc === 'exiting_man') {
       if (p === 'ask' || p === 'persuade') {
-        if (/ممنون|مرسی|متشکرم|تشکر/.test(method)) {
-          return {
-            narrative: 'مرد پالتوپوش سرش را فقط به اندازهٔ یک تأیید کوتاه خم می‌کند. «برای تو باز نگه نداشتم.» دستش را از در پس می‌کشد و هوای سرد میان‌تان می‌افتد؛ پاسخ بی‌ادبانه نیست، اما دعوت هم نیست.',
-            acceptedEffects: [],
-            isSuccess: true,
-          };
+        const topic = classifyCourierConversationTopic(method);
+        const repeated = rememberCourierTopic(state, topic, effects);
+        let flag: string | undefined;
+        let narrative: string;
+
+        switch (topic) {
+          case 'acknowledgement':
+            narrative = 'مرد پالتوپوش سرش را فقط به اندازهٔ یک تأیید کوتاه خم می‌کند. «برای تو باز نگه نداشتم.» دستش را از در پس می‌کشد و هوای سرد میان‌تان می‌افتد؛ پاسخ بی‌ادبانه نیست، اما دعوت هم نیست.';
+            break;
+          case 'handoff_object': {
+            const contextEarned = state.canonical.canonicalFlags.includes('courier_disclosed_missed_handoff') ||
+              state.canonical.canonicalFlags.includes('courier_disclosed_return_claim');
+            if (contextEarned) {
+              flag = 'courier_named_frame_delivery';
+              narrative = 'مرد این بار به در نگاه نمی‌کند؛ نگاهش روی نور شکستهٔ ویترین می‌ماند. «یک قاب. چیزی که ارزشش روی سطحش نیست.» انگشت شستش برآمدگی مستطیلی جیب داخلی پالتو را می‌سنجد. «بیشتر از این رو از کسی بپرس که تحویل رو عقب انداخت.»';
+            } else {
+              narrative = 'مرد گوشهٔ دهانش را جمع می‌کند: «تحویلی که طرف حسابم اسمش رو می‌دونه. اگر تو نمی‌دونی، هنوز طرف حساب من نیستی.» فاصله‌اش را با آستانه بیشتر می‌کند.';
+            }
+            break;
+          }
+          case 'purpose':
+            flag = 'courier_disclosed_missed_handoff';
+            narrative = 'مرد نگاهی به ساعت مچی زیر دستکش می‌اندازد: «منتظر تحویلی بودم که قرار بود پیش از نیمه‌شب از همین در بیرون بیاد. نیومد.» نگاهش برای لحظه‌ای روی پنجرهٔ روشن دفتر می‌ماند. «یا صاحبش نظرش عوض شده، یا یکی زودتر جابه‌جاش کرده.»';
+            break;
+          case 'receipt':
+            flag = 'courier_linked_receipt_to_handoff';
+            narrative = 'نگاهش به کاغذ نم‌کشیده می‌افتد، اما برای برداشتنش خم نمی‌شود. «رسید برای قهوه‌ست؛ ساعتش برای تحویل.» بعد با نوک کفش آب باران را از کنار فیش رد می‌کند، بی‌آن‌که لمسش کند.';
+            break;
+          case 'employer':
+            flag = 'courier_referenced_employer';
+            narrative = 'مرد گوشی را در جیبش جابه‌جا می‌کند: «کسی که قرارداد رو از حافظهٔ آدم‌ها قابل‌اعتمادتر می‌دونه.» اسم نمی‌دهد؛ فقط صفحهٔ خاموش خودروی پایین کوچه یک لحظه روشن و دوباره تاریک می‌شود.';
+            break;
+          case 'salar':
+            flag = 'courier_implicated_salar_timing';
+            narrative = 'مرد برای اولین بار مستقیم به پنجرهٔ دفتر نگاه می‌کند: «از سالار بپرس چرا ساعتِ قهوه ثبت شده، اما ساعتِ تحویل نه.» نام را بی‌مکث می‌گوید؛ معلوم است صاحب کافه را از قبل می‌شناسد.';
+            break;
+          case 'identity':
+            narrative = 'مرد پالتوپوش نیم‌قدم عقب می‌رود، طوری که نور کافه فقط لبهٔ دستکش را بگیرد: «اسم من چیزی را عوض نمی‌کند. اگر می‌خواهی بدانی چرا اینجا بودم، از کسی بپرس که حاضر شد چیزی را که مالش نبود پس بدهد.» بعد نگاه کوتاهی به رسید خیس می‌اندازد.';
+            break;
+          case 'departure':
+            flag = 'courier_disclosed_missing_delivery';
+            narrative = 'مرد یقهٔ پالتو را بالاتر می‌کشد و نگاهش را به انتهای کوچه می‌دوزد: «چون چیزی که باید تحویل می‌گرفتم اینجا نبود. موندن، فقط به کسی که جابه‌جاش کرده وقت می‌ده.» نمی‌گوید دنبال چه بوده یا از کجا می‌داند جابه‌جا شده است.';
+            break;
+          case 'opening_hours':
+            flag = 'courier_disclosed_return_claim';
+            narrative = 'مرد نگاه کوتاهی به نور پشت شیشه می‌اندازد: «من نگفتم برای مشتری‌ها بازه.» انگشت پوشیده‌اش از لبهٔ در جدا می‌شود. «گفتم هنوز بازه—برای کسی که باید چیزی را پس بگیره.» نیم‌قدم به سمت کوچه عقب می‌رود.';
+            break;
+          default:
+            narrative = 'مرد چند لحظه ساکت می‌ماند؛ نه برای فکرکردن، برای سنجیدن تو. «سؤالت جایی برای یک جواب بی‌خطر می‌ذاره.» دستش را از چارچوب جدا می‌کند. «اگر می‌خوای دروغم رو بگیری، چیزی بپرس که بشه بعداً با این کافه تطبیقش داد.»';
         }
-        if (/چرا.*(?:باز|هنوز)|هنوز.*باز|اینجا.*(?:چه|چی)|چه\s*جور\s*جایی/.test(method)) {
-          return {
-            narrative: 'مرد نگاه کوتاهی به نور پشت شیشه می‌اندازد: «من نگفتم برای مشتری‌ها بازه.» انگشت پوشیده‌اش از لبهٔ در جدا می‌شود. «گفتم هنوز بازه—برای کسی که باید چیزی را پس بگیره.» پیش از آن‌که بپرسی چه چیزی، نیم‌قدم به سمت کوچه عقب می‌رود.',
-            acceptedEffects: [],
-            isSuccess: true,
-          };
+
+        persistCourierFlag(state, flag, effects);
+        if (repeated) {
+          narrative += '\n\nاین بار بعد از جواب مکث نمی‌کند؛ یک قدم دیگر به سمت پیچ کوچه می‌رود و روشن است که فرصت گفت‌وگو بی‌هزینه نمی‌ماند.';
         }
-        if (/اسم|کی\s*هستی|کیستی|اسمت|نامت/.test(method)) {
-          return {
-            narrative: 'مرد پالتوپوش نیم‌قدم عقب می‌رود، طوری که نور کافه فقط لبهٔ دستکش را بگیرد: «اسم من چیزی را عوض نمی‌کند. اگر می‌خواهی بدانی چرا اینجا بودم، از کسی بپرس که حاضر شد چیزی را که مالش نبود پس بدهد.» بعد نگاه کوتاهی به رسید خیس می‌اندازد.',
-            acceptedEffects: [],
-            isSuccess: true,
-          };
-        }
-        if (/چرا.*(?:می‌?ری|میری|می‌?روی|داری.*می‌?ری)|تو\s*خودت.*چرا|این\s*سرما/.test(method)) {
-          return {
-            narrative: 'مرد یقهٔ پالتو را بالاتر می‌کشد و نگاهش را به انتهای کوچه می‌دوزد: «چون چیزی که باید تحویل می‌گرفتم اینجا نبود. موندن، فقط به کسی که جابه‌جاش کرده وقت می‌ده.» نمی‌گوید دنبال چه بوده یا از کجا می‌داند جابه‌جا شده است.',
-            acceptedEffects: [],
-            isSuccess: true,
-          };
-        }
-        return {
-          narrative: 'مرد پالتوپوش نیم‌قدم عقب می‌رود، طوری که نور کافه فقط لبهٔ دستکش را بگیرد: «اسم من چیزی را عوض نمی‌کند. اگر می‌خواهی بدانی چرا اینجا بودم، از کسی بپرس که حاضر شد چیزی را که مالش نبود پس بدهد.» نگاه کوتاهی به رسید خیس می‌اندازد و شانه‌اش را به سمت پیچ کوچه می‌چرخاند؛ فاصله‌اش با تو بیشتر می‌شود.',
-          acceptedEffects: [],
-          isSuccess: true,
-        };
+        return { narrative, acceptedEffects: effects, isSuccess: true };
       }
       if (p === 'deceive' || p === 'threaten' || p === 'accuse') {
         const risk = tickClock(state.clocks, 'personalRisk', 1, 'رویارویی مستقیم با پیک دستکش قرمز');

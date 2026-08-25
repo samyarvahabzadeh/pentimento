@@ -206,10 +206,14 @@ export function evaluateNpcReaction(
       npcId === 'salar' &&
       /(?:مرد|پالتو|بیرون).*(?:بازرس|اماکن|هویت|گشت|پلیس|تهدید)|(?:بازرس|اماکن|هویت|گشت|پلیس|تهدید).*(?:مرد|پالتو|بیرون)/.test(raw)
     ) {
-      const networkAlreadyReacted = state.canonical.canonicalFlags.includes('collector_deadline_received');
+      const courierReportObserved = state.situation?.eventHistory.some(
+        event => event.eventId.startsWith('opening_courier_reports_'),
+      ) ?? false;
+      const networkAlreadyReacted = courierReportObserved ||
+        state.canonical.canonicalFlags.includes('collector_deadline_received');
       return {
         responseProse: networkAlreadyReacted
-          ? 'سالار دست از جابه‌جا کردن کاغذها می‌کشد: «پس پیام دربارهٔ تو از همون مرد اومده. ادعای بازرسی و اسم گشت حالا بخشی از مذاکره‌ست؛ یا براش پشتوانه می‌سازیم، یا کاری می‌کنیم تماس بعدی رو مسیرِ خودمون بیفته.» زونکن را می‌بندد و منتظر می‌ماند بگویی کدام خطر را قبول می‌کنی.'
+          ? 'سالار دست از جابه‌جا کردن کاغذها می‌کشد: «پس اون حرکت روی گوشی، گزارش تو بوده. ادعای بازرسی و اسم گشت حالا بخشی از مذاکره‌ست؛ یا براش پشتوانه می‌سازیم، یا کاری می‌کنیم تماس بعدی رو مسیرِ خودمون بیفته.» زونکن را می‌بندد و منتظر می‌ماند بگویی کدام خطر را قبول می‌کنی.'
           : 'سالار دست از جابه‌جا کردن کاغذها می‌کشد: «اگر قبل از ورودت اسم و صورتت رو فرستاده باشه، تماس بعدی غافلگیرمون می‌کنه. دقیق بگو چی شنید و از کدوم سمت رفت.» قلم را کنار می‌گذارد؛ این بار حرفت را مثل گزارش ثبت می‌کند، نه درد دل.',
         suspicionDelta: 0,
         trustDelta: 1,

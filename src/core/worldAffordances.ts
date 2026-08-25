@@ -61,7 +61,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
         {
           id: 'exiting_man_red_glove',
           primitives: ['inspect'],
-          observation: 'با دقت دست راستش را می‌بینی: دستکش قرمز بدون چروک روی انگشت‌ها نشسته و هنگام لمس چارچوب هیچ سطحی را با پوست تماس نمی‌دهد.',
+          observation: 'با دقت دست راستش و برش پالتو را می‌بینی: دستکش قرمز بدون چروک روی انگشت‌ها نشسته و هنگام لمس چارچوب هیچ سطحی را با پوست تماس نمی‌دهد. لبهٔ پایین پالتو از باران خیس است، اما روی جیب داخلی برآمدگی تخت و مستطیلی دیده می‌شود؛ چیزی باریک را نزدیک سینه نگه داشته است.',
           evidenceIds: ['fact_red_glove_man'],
           proofDomain: { domain: 'SOCIAL', points: 1 },
         },

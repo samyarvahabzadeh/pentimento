@@ -1,6 +1,6 @@
 {
   "name": "pentimento",
-  "version": "2.9.0",
+  "version": "2.10.0",
   "type": "module",
   "scripts": {
     "game:text": "tsx src/cli/textHarness.ts",
@@ -32,6 +32,7 @@
     "test:conversation": "tsx src/cli/conversationalFreedomRegressionTest.ts",
     "test:affordances": "tsx src/cli/affordanceStateRegressionTest.ts",
     "test:diegetic": "tsx src/cli/diegeticContinuityRegressionTest.ts",
+    "test:dialogue": "tsx src/cli/livingDialogueRegressionTest.ts",
     "test:security": "tsx src/cli/sourceSecurityRegressionTest.ts",
     "fingerprint": "tsx src/cli/printBuildFingerprint.ts --hash-only",
     "models:list": "tsx src/transport/listModels.ts",
