@@ -1,6 +1,6 @@
 import type { CandidateAction, PlayerClassId, RunState, TurnResolution } from './types.js';
-import { getRoleProfile } from '../canon/roleProfiles.js';
 import { getLoopEcho } from '../canon/loopEchoes.js';
+import { renderIdentityArrival } from './conversationGrounding.js';
 
 export interface RenderNarrativeOptions {
   state: RunState;
@@ -12,7 +12,6 @@ export interface RenderNarrativeOptions {
 export function renderNarrative(options: RenderNarrativeOptions): string {
   const { state, resolution, playerInput, candidate } = options;
   const role = state.canonical.playerClass ?? 'art_historian';
-  const roleProfile = getRoleProfile(role);
   const candidateId = resolution.interpreted.candidateId;
 
   // 1. Authored Peaks & Endings
@@ -28,16 +27,11 @@ export function renderNarrative(options: RenderNarrativeOptions): string {
   // 2. Authored Peak candidate matches
   switch (candidateId) {
     case 'SELECT_ROLE_ART_HISTORIAN':
-      return `با تخصص «مورخ هنری»، قدم به کوچهٔ حسینی می‌گذاری. چشمانت بی‌اختیار به تناسبات قاب، بافت لایه‌ها و سایه‌روشن‌های تاریخی جلب می‌شود.\n\nروبروی کافه پنتیمنتو ایستاده‌ای. ساعت ۰۰:۱۷ نیمه‌شب است. باران به آرامی سنگ‌فرش را خیس می‌کند و درِ شیشه‌ای کافه تکان می‌خورد.`;
-
     case 'SELECT_ROLE_COFFEE_ALCHEMIST':
-      return `با لنز حسی «کیمیاگر قهوه»، وارد محدودهٔ پنتیمنتو می‌شوی. هوای مرطوب عظیمیه با عطر دورِ رُست تیره و بوی چوب خیس درآمیخته؛ از پشت در بسته نمی‌توان منشأ بوهای داخل کافه را تشخیص داد.\n\nساعت ۰۰:۱۷ است. مردی با پالتوی تیره و دستکش چرمی قرمز رنگ با شتاب از در خارج می‌شود.`;
-
     case 'SELECT_ROLE_SYSTEMS_ANALYST':
-      return `با ذهن ساختاریافتهٔ «تحلیل‌گر سیستم‌ها»، نگاهت به ساعت گوشی و دوربین بالای ورودی می‌افتد. ساعت ۰۰:۱۷:۴۳ است؛ برای یافتن هر ناهماهنگی باید بعداً رکوردهای مستقل صندوق و دوربین را با هم مقایسه کنی.\n\nمردی با دستکش چرمی قرمز رنگ از ورودی کافه بیرون می‌آید.`;
-
     case 'SELECT_ROLE_INVESTIGATOR':
-      return `با نگاه تیزبین «کارآگاه اجتماعی»، مکث حساب‌شدهٔ مرد پالتوپوش و نحوهٔ نگه‌داشتن لنگهٔ در با دستکش قرمز را زیر نظر می‌گیری؛ رفتارش کنترل‌شده است، اما هنوز چیزی دربارهٔ قصدش ثابت نمی‌کند.\n\nساعت ۰۰:۱۷ نیمه‌شب است. درِ کافه هنوز روی پاشنه آرام نگرفته که او در تاریکی کوچه ناپدید می‌شود.`;
+    case 'SELECT_ROLE_OBSERVER':
+      return renderIdentityArrival(playerInput, role);
 
     case 'ENTER_CAFE':
       return `دستگیرهٔ برنجی را فشار می‌دهی و پا به گرمای سالن کافه پنتیمنتو می‌گذاری.

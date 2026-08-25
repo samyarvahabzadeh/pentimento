@@ -58,14 +58,15 @@ async function main(): Promise<void> {
   const compound = createInitialRunState(2602);
   await resolvePlayerTurn(compound, 'من مورخ هنری هستم');
   await resolvePlayerTurn(compound, 'وارد سالن کافه می‌شوم');
-  const gatedCompound = await resolvePlayerTurn(
+  const physicalAccessCompound = await resolvePlayerTurn(
     compound,
     'به سمت تابلوی گالری می‌روم و بعد پشت تابلو را بررسی می‌کنم'
   );
-  assert.equal(compound.canonical.currentScene, 'scene_gallery');
+  assert.equal(compound.canonical.currentScene, 'scene_painting_back');
   assert.ok(!compound.canonical.evidenceIds.includes('fact_label_numbers_14_3_7_55'));
-  assert.equal(gatedCompound._debugInfo?.trace.resolutionPath, 'compound_sequence');
-  assert.equal(gatedCompound._debugInfo?.trace.subtraces.length, 2);
+  assert.ok(!compound.canonical.evidenceIds.includes('fact_underpainting_hidden_layer'));
+  assert.equal(physicalAccessCompound._debugInfo?.trace.resolutionPath, 'compound_sequence');
+  assert.equal(physicalAccessCompound._debugInfo?.trace.subtraces.length, 2);
 
   const collector = createInitialRunState(2603);
   collector.canonical.currentNode = 'NODE_16';

@@ -73,13 +73,15 @@ function applyActionEffects(state: RunState, actionId: string, playerInput: stri
     actionId === 'SELECT_ROLE_ART_HISTORIAN' ||
     actionId === 'SELECT_ROLE_COFFEE_ALCHEMIST' ||
     actionId === 'SELECT_ROLE_SYSTEMS_ANALYST' ||
-    actionId === 'SELECT_ROLE_INVESTIGATOR'
+    actionId === 'SELECT_ROLE_INVESTIGATOR' ||
+    actionId === 'SELECT_ROLE_OBSERVER'
   ) {
     const classMap: Record<string, string> = {
       SELECT_ROLE_ART_HISTORIAN: 'art_historian',
       SELECT_ROLE_COFFEE_ALCHEMIST: 'coffee_alchemist',
       SELECT_ROLE_SYSTEMS_ANALYST: 'systems_analyst',
       SELECT_ROLE_INVESTIGATOR: 'investigator',
+      SELECT_ROLE_OBSERVER: 'observer',
     };
     state.canonical.playerClass = classMap[actionId] as any;
     state.canonical.currentNode = 'NODE_01';

@@ -24,7 +24,7 @@ export function decomposeMultiActionInput(playerInput: string, state: RunState):
 
   // Split on strong Persian conjunctions and delimiters
   let rawClauses = norm
-    .split(/،|\s*و\s*سپس\s*|\s*و\s*بعد\s*|\s*سپس\s*|\s*بعد\s*|\s*قبل\s*از\s*اینکه\s*|\s*در\s*حالی\s*که\s*|;|؛/)
+    .split(/،|\s*و\s*سپس\s*|\s*و\s*بعد\s*|\s*سپس\s*|\s+بعد(?:ش)?\s+(?!از\s)|\s*قبل\s*از\s*اینکه\s*|\s*در\s*حالی\s*که\s*|;|؛/)
     .map(c => c.trim())
     .filter(c => c.length > 2);
 
@@ -67,10 +67,30 @@ export function decomposeMultiActionInput(playerInput: string, state: RunState):
     return [extractSemanticAction(norm, state)];
   }
 
-  // Extract semantic action for each clause
+  // Extract each clause, then resolve only the small amount of discourse
+  // context that Persian naturally omits. This is deliberately conservative:
+  // an omitted object is inherited only for an explicit pronoun/spatial
+  // continuation, while «واکنشش» resolves to the most recent human actor.
   const actions: SemanticAction[] = [];
+  const npcIds = new Set(['salar', 'mani', 'yashin', 'haniyeh', 'collector', 'exiting_man']);
   for (const clause of rawClauses) {
-    actions.push(extractSemanticAction(clause, state));
+    const action = extractSemanticAction(clause, state);
+    const previous = actions[actions.length - 1];
+
+    if (!action.target && /واکنش(?:ش|شان)|حالت(?:ش|شان)|رفتار(?:ش|شان)/.test(clause)) {
+      const recentNpc = [...actions].reverse().find(candidate => candidate.target && npcIds.has(candidate.target));
+      if (recentNpc?.target) action.target = recentNpc.target;
+    }
+
+    if (
+      !action.target &&
+      previous?.target &&
+      /^(?:آن\s*را|اون\s*رو|همان\s*را|زیر|روی|داخل|توی|بعد\s+آن\s+را)/.test(clause)
+    ) {
+      action.target = previous.target;
+    }
+
+    actions.push(action);
   }
 
   return actions;

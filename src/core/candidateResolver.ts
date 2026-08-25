@@ -89,6 +89,7 @@ export function resolveCandidateAction(
         if (effect.flag === 'ROLE_COFFEE_ALCHEMIST') state.canonical.playerClass = 'coffee_alchemist';
         if (effect.flag === 'ROLE_SYSTEMS_ANALYST') state.canonical.playerClass = 'systems_analyst';
         if (effect.flag === 'ROLE_INVESTIGATOR') state.canonical.playerClass = 'investigator';
+        if (effect.flag === 'ROLE_OBSERVER') state.canonical.playerClass = 'observer';
         acceptedEffects.push(effect);
         break;
 

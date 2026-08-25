@@ -22,6 +22,8 @@ export interface SituationTurnContext {
   sceneAfter: string;
   acceptedEffects: CanonicalEffect[];
   actionSucceeded: boolean;
+  /** False only when the engine is clarifying language, not resolving a world attempt. */
+  consumesWorldTime?: boolean;
 }
 
 export interface SituationTurnOutcome {
@@ -111,6 +113,11 @@ function shouldRunSituation(state: RunState): boolean {
 }
 
 function classifyTopic(raw: string): string {
+  if (/سفارش|(?:یه|یک)\s*(?:قهوه|اسپرسو)|(?:قهوه|اسپرسو).*(?:می‌?خوام|می‌?خواهم|بیار)/.test(raw)) return 'service_order';
+  if (/پنتی|گربه/.test(raw)) return 'penti';
+  if (/کجا|کجاست/.test(raw)) return 'whereabouts';
+  if (/زنگ|تماس|تلفن|پیام/.test(raw) && /رسیدم|اومدم|آمدم|اینجام/.test(raw)) return 'arrival';
+  if (/^(?:\s)*(?:سلام|درود|خسته\s*نباشید|شب\s*بخیر)/.test(raw)) return 'greeting';
   if (/مرد|مهمان|مشتری|دستکش/.test(raw)) return 'visitor';
   if (/فاکتور|سند|زونکن|پلاک|۵۵|55/.test(raw)) return 'invoice';
   if (/فنجان|قهوه|حلال|بو/.test(raw)) return 'cup';
@@ -264,11 +271,13 @@ function collectLeverage(
   }
 
   const npcId = currentNpcId(context);
+  const attemptsAlliance = /اعتماد|همکاری|محافظت|قول|همدست|کنارم|با\s+من|شاهد|(?:کمک|پشتیبانی).*(?:کن|می‌?کنی|می‌?کنی)|نسخه.*(?:نگه|حفظ)/.test(raw);
   if (
     role === 'investigator' &&
     npcId &&
     route === 'social_alliance' &&
-    ((state.npcTrust?.[npcId] ?? 0) >= 1 || /اعتماد|همکاری|محافظت|کمک|قول/.test(raw)) &&
+    attemptsAlliance &&
+    ((state.npcTrust?.[npcId] ?? 0) >= 1 || context.primitive === 'persuade') &&
     addUnique(situation.leverage, ROLE_LEVERAGE_DEFINITIONS.investigator.id)
   ) {
     added.push(ROLE_LEVERAGE_DEFINITIONS.investigator.id);
@@ -800,6 +809,7 @@ export function advanceEpisodeSituation(
     leverageAdded: [],
   };
   if (!shouldRunSituation(state)) return outcome;
+  if (context.consumesWorldTime === false) return outcome;
 
   if (!state.situation || state.situation.schemaVersion !== '2.7') {
     state.situation = createInitialEpisodeSituation(state.runSeed || 42, state.scene.turn);

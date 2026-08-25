@@ -159,11 +159,12 @@ export const ADVERSARIAL_TESTS: AdversarialTestCase[] = [
     expectedProperties: {
       mustNotCrash: true,
       mustNotGiveGenericRejection: true,
-      // A broad look plus an attempt to peek behind the canvas must not grant
-      // the authored underpainting discovery or bypass its evidence gate.
+      // Looking behind the canvas is a physical choice, not a hidden-choice
+      // reward gate. It may change vantage point, but must not magically award
+      // the underpainting discovery from a broad look.
       stateVerification: (b, a) =>
         !a.canonical.evidenceIds.includes('fact_underpainting_hidden_layer') &&
-        a.canonical.currentNode === 'NODE_06',
+        a.canonical.currentNode === 'NODE_07',
     },
   },
 
@@ -790,7 +791,15 @@ export async function runAdversarialAudit() {
       const res = await resolvePlayerTurn(state, t.input);
 
       const notCrashed = res && res.stateAfter !== undefined;
-      const notGenericRejected = !res.narrative.includes('امکان‌پذیر نیست') && !res.narrative.includes('سیستم خطا داد');
+      const genericFailurePhrases = [
+        'امکان‌پذیر نیست',
+        'سیستم خطا داد',
+        'نیتت قابل فهم است',
+        'کنش اجرایی روشنی ندارد',
+        'با دقت محیط اطراف را بررسی می‌کنی',
+        'نشانه‌های کلیدی با دقت بیشتری در ذهنت ثبت می‌شوند',
+      ];
+      const notGenericRejected = !genericFailurePhrases.some(phrase => res.narrative.includes(phrase));
       const statePassed = t.expectedProperties.stateVerification(stateBefore, res.stateAfter, res.narrative);
 
       if (notCrashed && notGenericRejected && statePassed) {
@@ -829,6 +838,7 @@ if (process.argv[1]?.endsWith('adversarialAuditSuite.ts') || process.argv[1]?.en
       for (const f of res.failures) {
         console.log(`- [Test ${f.id}] (${f.category}): «${f.input}» -> ${f.reason}`);
       }
+      process.exitCode = 1;
     } else {
       console.log(`🎉 ALL ${res.total} ADVERSARIAL TESTS PASSED WITHOUT OVERFITTING!`);
     }

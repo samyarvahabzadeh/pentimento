@@ -14,6 +14,12 @@ import {
   EPISODE_01_CLUE_CONSTELLATIONS,
   evaluateEpisode01Constellations,
 } from '../canon/episode01Situation.js';
+import {
+  classifyConversationalIntent,
+  inferPlayerIdentity,
+  isPlayerIdentityDeclaration,
+  roleCandidateId,
+} from './conversationGrounding.js';
 
 export const ACTION_PRIMITIVES: ActionPrimitive[] = [
   'move', 'inspect', 'touch', 'take', 'give', 'hide', 'use', 'combine', 'damage',
@@ -35,24 +41,53 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   let method: string = norm;
   let motive: string | undefined = undefined;
   let confidence = 0.85;
-  const explicitQuestion = /(?:می‌?پرسم|میپرسم|سؤال\s*می‌?کنم|سوال\s*می‌?کنم|از\s+\S+.*(?:می‌?خواهم|می‌?خوام).*(?:بگو|توضیح|جواب)|(?:^|\s)(?:چرا|چطور|چجوری|کجاست|کیه|چیه|اسمت|نامت)(?:\s|$|[؟?]))/.test(norm);
+  const conversationalIntent = classifyConversationalIntent(norm);
+  const explicitQuestion = /[؟?]/.test(norm) || /(?:می‌?پرسم|میپرسم|سؤال\s*می‌?کنم|سوال\s*می‌?کنم|از\s+\S+.*(?:می‌?خواهم|می‌?خوام).*(?:بگو|توضیح|جواب)|(?:^|\s)(?:چرا|چطور|چجوری|کجاست|کیه|چیه|اسمت|نامت)(?:\s|$|[؟?]))/.test(norm);
   const explicitPersuasion = /قانع|متقاعد|راضی.*کن|قول.*(?:کمک|محافظت|همکاری)|می‌?(?:خواهم|خوام).*(?:همکاری|اعتماد).*کن|از\s+\S+.*می‌?(?:خواهم|خوام).*(?:نگه|ثبت|کمک|حفظ|بمان|بیاد|بیاید|انجام)/.test(norm);
+  const explicitDeception = /دروغ|بلوف|وانمود|ادعا.*(?:جعلی|غلط|کرده)|فریب|اطلاعات.*غلط|(?:بازرس|از\s*اماکن).*(?:هستم|اومدم|آمدم|بازرسی)/.test(norm);
+  const explicitThreat = /اگه.*(?:نگی|نکنی)|اگر.*(?:نگویی|نکنی)|وگرنه|تهدید|گشت.*تماس|تماس.*گشت|پلیس.*(?:خبر|تماس)|بهتره.*(?:جواب|بگی)/.test(norm);
+  const explicitConversation = /(?:^|[،,\s])(?:سلام|درود|خسته\s*نباشید|شب\s*بخیر|ممنون|مرسی|متشکرم)(?:$|[،,!\s])|می‌?(?:گم|گویم)|میگم|زنگ\s*می‌?زن|تماس\s*می‌?گیر|پیام\s*می‌?(?:دم|دهم)/.test(norm);
+  const orderRequest = /سفارش\s*می‌?(?:دم|دهم)|(?:قهوه|اسپرسو|نوشیدنی).*(?:می‌?خوام|می‌?خواهم|بیار|لطفا)|(?:یه|یک)\s*(?:قهوه|اسپرسو).*(?:سفارش|می‌?خوام|می‌?خواهم)/.test(norm);
 
   // 1. Generic Primitive Extraction
   // Explicit speech framing wins over action words inside the topic.  Asking
   // Salar why he "hid" a contract is an ask, not an attempt to hide Salar.
-  if (explicitPersuasion) {
+  if (state.canonical?.currentNode === 'NODE_00' && isPlayerIdentityDeclaration(norm)) {
+    primitive = 'improvise';
+    confidence = 0.99;
+  } else if (explicitDeception) {
+    primitive = 'deceive';
+  } else if (explicitThreat) {
+    primitive = 'threaten';
+  } else if (conversationalIntent) {
+    primitive = 'inspect';
+    target = 'scene_overview';
+    confidence = 0.99;
+  } else if (explicitPersuasion) {
     primitive = 'persuade';
-  } else if (explicitQuestion) {
+  } else if (explicitQuestion || explicitConversation || orderRequest) {
     primitive = 'ask';
-  } else if (/مشت|لگد|سیلی|حمله|می‌?زنمش|بزنمش|هلش|گلاویز|یقه.*می‌?گیر/.test(norm)) {
+  } else if (hasStandaloneLexeme(norm, 'مشت') || /لگد|سیلی|حمله|می‌?زنمش|بزنمش|هلش|گلاویز|یقه.*می‌?گیر/.test(norm)) {
     primitive = 'damage';
-  } else if ((/جلوی/.test(norm) && (mentionsDoor || /راه/.test(norm))) || /مسدود|سد|مانع|بستن.*راه|راه.*می‌?(?:بند|گیر)|حائل/.test(norm)) {
+  } else if (
+    (/جلوی/.test(norm) && (mentionsDoor || /راه/.test(norm)) && /می‌?(?:کشم|گذارم|ذارم|چینم)|قرار\s*می‌?د|هل|پرت|سد|حائل|مسدود/.test(norm)) ||
+    /مسدود|سد|مانع|بستن.*راه|راه.*می‌?(?:بند|گیر)|حائل/.test(norm)
+  ) {
     primitive = 'block';
   } else if (/قفل|چفت/.test(norm)) {
     primitive = 'lock';
   } else if (/محافظت|حفاظت|امن.*کن|مراقب.*باش|نگهبانی|دفاع.*از/.test(norm)) {
     primitive = 'protect';
+  } else if (/(?:می‌?رم|میرم|می‌?روم|برم|وارد).*(?:پشت\s*(?:کانتر|بار)|پشت\s*(?:تابلو|بوم))/.test(norm)) {
+    primitive = 'move';
+  } else if (/هیچ.*حرف.*نمی‌?زن|بی‌?حرف.*می‌?(?:نشین|مان)|ده\s*دقیقه.*(?:می‌?نشین|ساکت)|ساکت.*می‌?نشین/.test(norm)) {
+    primitive = 'wait';
+  } else if (/نوازش|ناز\s*می‌?کن|(?:دست|انگشت).*?(?:روی|به).*?(?:می‌?کشم|می‌?زنم)|با\s*انگشتم.*روی|لمس|بغل\s*می‌?کن|بغلش|می‌?بوس/.test(norm)) {
+    primitive = 'touch';
+  } else if (/می‌?(?:شینم|نشینم)|میشینم|بشینم|روی.*صندلی.*می‌?شین/.test(norm)) {
+    primitive = 'use';
+  } else if (mentionsDoor && /باز\s*می‌?کن|می‌?بندم|ببندم|بستن|پشت\s*سرم.*(?:بند|بسته)/.test(norm)) {
+    primitive = 'use';
   } else if (/خاموش|قطع.*برق|کلید.*برق|نور.*(صفر|خاموش|قطع)|تاریک\s*(کردن|کنم|شدن|بشه)|تاریکی\s*(مطلق|ایجاد)/.test(norm)) {
     primitive = 'use';
   } else if (/منتشر|افشا|عمومی|خبرنگار|لایو|آپلود/.test(norm)) {
@@ -63,11 +98,17 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     primitive = 'damage';
   } else if (/می‌?دزدم|سرقت|کشs*می‌?رم|قاپ|یواشکی.*برمی‌?دار/.test(norm)) {
     primitive = 'steal';
-  } else if (/پنهان|قایم|سُر.*بدم|جاسازی|می‌?ذارم.*زیر|بذارم.*زیر|زیر.*می‌?گذارم|زیر.*بذارم/.test(norm)) {
+  } else if (/پنهان|قایم|سُر.*بدم|جاسازی|می‌?ذارم.*زیر|بذارم.*زیر|زیر.*می‌?گذارم|زیر.*بذارم|رها.*زیر|زیر.*رها\s*می‌?کن/.test(norm)) {
     primitive = 'hide';
+  } else if (/(?:یک|چند)?\s*قدم.*برمی‌?دار|قدم\s*برمی‌?دار/.test(norm)) {
+    primitive = 'move';
   } else if (/داخل.*کیف|توی.*جیب|بردارم|برمی‌دارم|برداشتن|بذارم.*کیف|بالا.*می‌کشم|بلند.*می‌کنم/.test(norm)) {
     primitive = 'take';
-  } else if (/هل|پرت|حرکت|جابه‌جا/.test(norm)) {
+  } else if (/حواس.*پرت|پرت.*حواس/.test(norm)) {
+    primitive = 'distract';
+  } else if (/استفاده\s*می‌?کن|جلوی\s*نور\s*می‌?گیر|مرتب.*(?:ردیف|می‌?چین)|ردیف.*می‌?چین|صاف\s*می‌?کن|(?:روشنایی|نور|صدا|حرارت).*(?:کم|زیاد|تنظیم)\s*می‌?کن|(?:پسورد|رمز).*(?:حدس|امتحان)|خراشیدن|جدا\s*(?:می‌?کن|کن)|شیر\s*آب.*باز\s*می‌?کن|پرده.*(?:باز|بسته|کامل).*می‌?کشم/.test(norm)) {
+    primitive = 'use';
+  } else if (hasStandaloneLexeme(norm, 'هل') || /هلش|هل\s*می‌?|پرتش|(?:^|\s)پرت\s*(?:می‌?|کن)|حرکت\s*می‌?|جابه‌?جا|منتقل\s*می‌?کن/.test(norm)) {
     primitive = 'move';
   } else if (/دروغ|بلوف|وانمود|ادعا|فریب|اطلاعات.*غلط/.test(norm)) {
     primitive = 'deceive';
@@ -79,7 +120,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     primitive = 'ask';
   } else if (/استشمام|استنشاق|رایحه|بو\s*(?:می‌?کشم|می‌?کنم|کنم|بکشم)|بوی(?:ِ|\s|$)/.test(norm)) {
     primitive = 'smell';
-  } else if (/نوشیدن|می‌نوشم|بخورم|سر.*می‌کشم|چشیدن/.test(norm)) {
+  } else if (/نوشیدن|می‌?نوشم|بنوشم|بخورم|سر.*می‌کشم|چشیدن/.test(norm)) {
     primitive = 'taste';
   } else if (/سکوت|صبر|وایمیستم|می‌?(?:ایستم|مانم)|مستقر.*می‌?شوم|کاری.*نمی‌کنم|خیره/.test(norm)) {
     primitive = 'wait';
@@ -87,7 +128,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     primitive = 'follow';
   } else if (/حواس.*پرت|سرگرم.*کن|پرت.*کردن.*حواس|دست.*به.*سر/.test(norm)) {
     primitive = 'distract';
-  } else if (/پشت.*کانتر|پشت.*بار|وارد|(?:از\s+(?:کافه|سالن|اتاق)\s+خارج)|(?:خارج|بیرون)\s+می‌?(?:روم|شوم|زنم)|داخل.*(کافه|سالن|اتاق)|برم|می‌?ر[وو]م|میرم|قدم|دستگیره.*فشار/.test(norm)) {
+  } else if (/پشت.*کانتر|پشت.*بار|وارد|(?:از\s+(?:کافه|سالن|اتاق)\s+خارج)|(?:خارج|بیرون)\s+می‌?(?:روم|رم|شوم|زنم)|داخل.*(کافه|سالن|اتاق)|برم|می‌?رم|می‌?ر[وو]م|میرم|می‌?(?:آ|ا)م|قدم|دستگیره.*فشار/.test(norm)) {
     primitive = 'move';
   } else if (/تهدید|تحت.*فشار|فشار.*(می‌?آور|بیار)|زور/.test(norm)) {
     primitive = 'threaten';
@@ -104,23 +145,50 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   // 2. Detect Target from World Objects & NPCs
   const worldObjects = state.worldObjects || INITIAL_WORLD_OBJECTS;
   const matchedObj = findWorldObject(norm, worldObjects);
-  if (matchedObj) {
+  if (matchedObj && target !== 'scene_overview') {
     target = matchedObj.id;
   }
 
-  const npcIds = ['salar', 'mani', 'yashin', 'haniyeh', 'collector'];
-  const matchedNpc = npcIds.find(id => {
+  // In containment sentences, the object after «زیر/پشت» is the hiding
+  // place, not the item being hidden. Resolve the carried item explicitly so
+  // «رسید را زیر منو می‌گذارم» cannot turn into "hide the menu under itself".
+  if (primitive === 'hide') {
+    if (hasStandaloneLexeme(norm, 'رسید') || /فیش|کاغذ.*خیس|برگه.*خیس/.test(norm)) {
+      target = 'wet_receipt';
+    } else if (/گوشی|موبایل/.test(norm)) {
+      target = 'smartphone';
+    }
+  }
+
+  const npcIds = ['salar', 'mani', 'yashin', 'haniyeh', 'collector', 'exiting_man'];
+  const mentionedNpcs = npcIds.filter(id => {
     if (id === 'salar' && /سالار|صالحی/.test(norm)) return true;
     if (id === 'mani' && /(?:^|\s)مانی(?:$|\s|،|!|\.)/.test(norm)) return true;
     if (id === 'yashin' && /یاشین/.test(norm)) return true;
     if (id === 'haniyeh' && /حانیه/.test(norm)) return true;
     if (id === 'collector' && /کلکسیونر|خریدار/.test(norm)) return true;
+    if (id === 'exiting_man' && /مرد.*(?:پالتو|دستکش)|پالتوپوش/.test(norm)) return true;
     return false;
   });
+  let addressedNpc: string | undefined;
+  if (/از\s+(?:خانم\s+)?حانیه|به\s+حانیه.*(?:می‌?پرسم|میپرسم|می‌?گم|میگم)|حانیه\s*جان/.test(norm)) addressedNpc = 'haniyeh';
+  else if (/از\s+سالار|به\s+سالار.*(?:می‌?پرسم|میپرسم|می‌?گم|میگم|زنگ|پیام)|سالار\s*جان/.test(norm)) addressedNpc = 'salar';
+  else if (/از\s+یاشین|به\s+یاشین.*(?:می‌?پرسم|میپرسم|می‌?گم|میگم)|یاشین\s*جان/.test(norm)) addressedNpc = 'yashin';
+  else if (/از\s+مانی|به\s+مانی.*(?:می‌?پرسم|میپرسم|می‌?گم|میگم)|مانی\s*جان/.test(norm)) addressedNpc = 'mani';
+  else if (/از\s+(?:کلکسیونر|خریدار)|به\s+(?:کلکسیونر|خریدار).*(?:می‌?پرسم|میپرسم|می‌?گم|میگم)/.test(norm)) addressedNpc = 'collector';
+
+  if (!addressedNpc && orderRequest) {
+    const present = state.scene?.activeEntityIds ?? [];
+    if (present.includes('yashin')) addressedNpc = 'yashin';
+    else if (present.includes('haniyeh')) addressedNpc = 'haniyeh';
+    else if (present.includes('mani')) addressedNpc = 'mani';
+  }
+
+  const matchedNpc = addressedNpc ?? mentionedNpcs[0];
   if (matchedNpc) {
-    const isSocialAction = ['deceive', 'ask', 'threaten', 'accuse', 'give', 'persuade'].includes(primitive);
+    const isSocialAction = ['deceive', 'ask', 'threaten', 'accuse', 'give', 'persuade', 'distract'].includes(primitive);
     if (isSocialAction || !target) {
-      secondaryTarget = target;
+      secondaryTarget = target ?? mentionedNpcs.find(id => id !== matchedNpc);
       target = matchedNpc;
     } else {
       secondaryTarget = matchedNpc;
@@ -129,9 +197,18 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
 
   // Resolve colloquial pronouns/questions against a single present actor.
   // This is scene grounding, not mind-reading: ambiguous crowds remain unset.
-  if (!target && ['ask', 'persuade', 'deceive', 'threaten', 'accuse', 'damage'].includes(primitive)) {
-    const presentActors = state.scene?.activeEntityIds ?? [];
-    if (presentActors.length === 1) target = presentActors[0].replace('_salehi', '');
+  const needsImplicitSocialAddressee = ['ask', 'persuade', 'deceive', 'threaten', 'accuse'].includes(primitive);
+  const needsImplicitDamageTarget = primitive === 'damage' && !target;
+  const needsImplicitObservationTarget = primitive === 'inspect' && !target && /دست(?:‌|\s*)هاش|پالتوش|چهره(?:‌|\s*)ش|حالتش|رفتارش|خودش|واکنشش/.test(norm);
+  if (!matchedNpc && (needsImplicitSocialAddressee || needsImplicitDamageTarget || needsImplicitObservationTarget)) {
+    const knownNpcIds = new Set(npcIds);
+    const presentNpcs = (state.scene?.activeEntityIds ?? [])
+      .map(id => id.replace('_salehi', ''))
+      .filter(id => knownNpcIds.has(id));
+    if (presentNpcs.length === 1) {
+      secondaryTarget = target;
+      target = presentNpcs[0];
+    }
   }
 
   // 3. Detect Spatial Destinations & Secondary Targets
@@ -142,6 +219,9 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   if (/کیف|جیب/.test(norm)) secondaryTarget = 'in_bag';
   if (/زیر.*منو/.test(norm)) secondaryTarget = 'table5_menu';
   if (/زیر.*فنجان|زیر.*نعلبکی/.test(norm)) secondaryTarget = 'table5_saucer';
+  if (/زیر.*میز\s*(?:۵|5|پنج)/.test(norm) && !/زیر.*(?:فنجان|نعلبکی|منو)/.test(norm)) {
+    secondaryTarget = 'under_table5';
+  }
   if (/پشت.*بار|پشت.*کانتر/.test(norm)) target = 'behind_counter';
 
   // In barrier commands the movable obstacle is the acted-on object while
@@ -270,6 +350,18 @@ export function generateSceneCandidates(state: RunState, playerInput: string): C
           ],
           narrativeBeatId: 'beat_role_selected_social',
           risk: 0,
+        },
+        {
+          id: 'SELECT_ROLE_OBSERVER',
+          kind: 'other',
+          targetIds: ['role_observer'],
+          summary: 'پذیرفتن پیشینهٔ آزاد بازیکن بدون تحمیل تخصص جعلی',
+          effects: [
+            { type: 'set_flag', flag: 'ROLE_OBSERVER', value: true },
+            { type: 'change_scene', sceneId: 'scene_entrance', nodeId: 'NODE_01' },
+          ],
+          narrativeBeatId: 'beat_role_selected_observer',
+          risk: 0,
         }
       );
       break;
@@ -326,7 +418,6 @@ export function generateSceneCandidates(state: RunState, playerInput: string): C
         kind: 'take',
         targetIds: ['painting_back', 'label'],
         summary: 'نگاه کردن به پشت بوم و برچسب شجره‌نامه',
-        requires: [{ kind: 'evidence', targetId: 'fact_underpainting_hidden_layer' }],
         effects: [
           { type: 'change_scene', sceneId: 'scene_painting_back', nodeId: 'NODE_07' },
         ],
@@ -529,32 +620,39 @@ export function matchCandidateDeterministically(
     .replace(/[۸٨]/g, '8')
     .replace(/[۹٩]/g, '9');
 
-  // 1. Role Selection in Node 00
-  if (/^1$|مورخ|هنر|نقاشی|لایه‌|بوم|اصالت|art|historian/i.test(norm) && !/سیستم|پوز|لاگ/.test(norm)) {
-    const c = candidates.find(cand => cand.id === 'SELECT_ROLE_ART_HISTORIAN');
-    if (c) return { candidateId: c.id, confidence: 0.99, kind: 'other' };
-  }
-  if (/^2$|کیمیا|شامه|حلال|ترکیب|قهوه|chem|alchemist/i.test(norm)) {
-    const c = candidates.find(cand => cand.id === 'SELECT_ROLE_COFFEE_ALCHEMIST');
-    if (c) return { candidateId: c.id, confidence: 0.99, kind: 'other' };
-  }
-  if (/^3$|سیستم|تایم‌?استمپ|لاگ|پوز|داده|sys|analyst/i.test(norm)) {
-    const c = candidates.find(cand => cand.id === 'SELECT_ROLE_SYSTEMS_ANALYST');
-    if (c) return { candidateId: c.id, confidence: 0.99, kind: 'other' };
-  }
-  if (/^4$|کارآگاه|جنایی|بازجویی|رفتار|روان‌?شناسی|تناقض|investigator/i.test(norm)) {
-    const c = candidates.find(cand => cand.id === 'SELECT_ROLE_INVESTIGATOR');
-    if (c) return { candidateId: c.id, confidence: 0.99, kind: 'other' };
+  // 1. Character intake in Node 00. The player may declare a profession,
+  // relationship, motive, or an entirely custom background. The authored
+  // class is an internal mechanical lens, not a four-keyword gate.
+  if (state?.canonical.currentNode === 'NODE_00') {
+    const numberedRoles: Record<string, PlayerClassId> = {
+      '1': 'art_historian',
+      '2': 'coffee_alchemist',
+      '3': 'systems_analyst',
+      '4': 'investigator',
+      '5': 'observer',
+    };
+    const inferredRole = numberedRoles[norm] ?? (
+      isPlayerIdentityDeclaration(norm) ? inferPlayerIdentity(norm).role : undefined
+    );
+    if (inferredRole) {
+      const candidateId = roleCandidateId(inferredRole);
+      const candidate = candidates.find(cand => cand.id === candidateId);
+      if (candidate) return { candidateId: candidate.id, confidence: 0.99, kind: 'other' };
+    }
   }
 
   // 2. Explicit leave intent
-  if (/می‌?رم\s*خونه|میرم\s*خونه|ولش\s*کن|برم\s*بخوابم|بی‌?خیال/.test(norm)) {
+  if (/(?:می‌?رم|میرم|برم)\s*(?:خونه|خانه)|برم\s*بخوابم|(?:پرونده|ماجرا|این\s*کار).*(?:ولش\s*کن|بی‌?خیال).*(?:می‌?رم|میرم|برم|خواب)|(?:ولش\s*کن|بی‌?خیال).*(?:پرونده|ماجرا|این\s*کار).*(?:می‌?رم|میرم|برم|خواب)/.test(norm)) {
     const leaveCand = candidates.find(c => c.kind === 'leave');
     if (leaveCand) return { candidateId: leaveCand.id, confidence: 0.98, kind: 'leave' };
   }
 
   // 3. Explicit reckless drinking
-  if (/نوشیدن|می‌?نوشم|مینوشم|یک‌?نفس|بخورم|سر\s*می‌?کشم/.test(norm) && /فنجان|قهوه|مایع/.test(norm)) {
+  if (
+    /نوشیدن|می‌?نوشم|مینوشم|بنوشم|یک‌?نفس|بخورم|سر\s*می‌?کشم/.test(norm) &&
+    /فنجان|قهوه|مایع/.test(norm) &&
+    !/خالی/.test(norm)
+  ) {
     const drinkCand = candidates.find(c => c.id === 'DRINK_FROM_CUP_RECKLESS');
     if (drinkCand) return { candidateId: drinkCand.id, confidence: 0.98, kind: 'use' };
   }

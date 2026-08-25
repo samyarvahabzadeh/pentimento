@@ -34,6 +34,7 @@ export type CanonicalActionId =
   | "SELECT_ROLE_COFFEE_ALCHEMIST"
   | "SELECT_ROLE_SYSTEMS_ANALYST"
   | "SELECT_ROLE_INVESTIGATOR"
+  | "SELECT_ROLE_OBSERVER"
   // NODE 01 Actions
   | "ENTER_CAFE"
   | "OBSERVE_EXITING_MAN"
@@ -371,6 +372,10 @@ export interface SceneState {
 export interface CanonicalRunState {
   runId: string;
   playerClass?: PlayerClassId;
+  /** Player-authored identity, relationship, or motive from character intake. */
+  playerIdentity?: string;
+  /** Additive corrections preserve background instead of silently replacing it. */
+  playerIdentityStatements?: string[];
   currentNode: string;
   currentScene: string;
   stress: number;
@@ -723,6 +728,8 @@ export interface CandidateAction {
 
 export interface DynamicEnvironmentState {
   doorBlocked?: boolean;
+  entranceDoorOpen?: boolean;
+  playerPosture?: string;
   guardingEntrance?: boolean;
   lightsOff?: boolean;
   recordingActive?: boolean;
@@ -1010,6 +1017,8 @@ export interface ResolvedTurnTrace {
     | 'generic_location_transition'
     | 'generic_entity_inspection'
     | 'generic_npc_interaction'
+    | 'character_intake'
+    | 'conversational_grounding'
     | 'special_authored_candidate'
     | 'deterministic'
     | 'semantic'

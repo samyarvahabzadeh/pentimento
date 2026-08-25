@@ -54,9 +54,12 @@ export function solveSemanticAction(
     };
   }
 
-  if (/ذهن.*(?:بخوان|می‌?خوان)|فکر(?:ش|شان).*بفهم|تلپورت|نامرئی.*(?:شوم|بشم)|پرواز.*(?:کنم|می‌?کنم)/.test(action.rawInput)) {
+  const impossibleLeap = /(?:با\s*)?یک\s*پرش.*از\s*سقف.*(?:خیابان|کوچه)|از\s*سقف.*می‌?پرم/.test(action.rawInput);
+  if (impossibleLeap || /ذهن.*(?:بخوان|بخون|می‌?خوان|می‌?خون)|فکر(?:ش|شان).*بفهم|تلپورت|نامرئی.*(?:شوم|بشم)|پرواز.*(?:کنم|می‌?کنم)/.test(action.rawInput)) {
     return {
-      narrative: 'این کنش در توان انسانی و قواعد این جهان نیست. نمی‌توانی ذهن کسی را مستقیم بخوانی؛ می‌توانی به مکث، جهت نگاه، تناقض حرف‌ها یا چیزی که از دستش پنهان می‌کند تکیه کنی.',
+      narrative: impossibleLeap
+        ? 'تا لبهٔ مسیر دسترسی سقف را برانداز می‌کنی: خیابان پشتی چند متر پایین‌تر است و هیچ پاگرد یا سایبانی برای شکستن سقوط وجود ندارد. چنین پرشی فرود کنترل‌شده نیست؛ می‌توانی از راه‌پله، پنجرهٔ امن یا مسیر پشتی پایین بروی.'
+        : 'این کنش در توان انسانی و قواعد این جهان نیست. نمی‌توانی ذهن کسی را مستقیم بخوانی؛ می‌توانی به مکث، جهت نگاه، تناقض حرف‌ها یا چیزی که از دستش پنهان می‌کند تکیه کنی.',
       acceptedEffects: [],
       isSuccess: false,
       reasonIfFailed: 'impossible_action',
@@ -72,8 +75,68 @@ export function solveSemanticAction(
   const matchedNpc = npcIds.find(id => targetKey.includes(id) || method.includes(id) || action.rawInput.includes(id));
 
   if (matchedNpc) {
+    if (p === 'distract') {
+      if (!state.environmentState.customDistractions) state.environmentState.customDistractions = [];
+      state.environmentState.customDistractions.push(method.slice(0, 180));
+      effects.push({
+        type: 'modify_environment',
+        key: 'customDistractions',
+        value: state.environmentState.customDistractions,
+      });
+      const name = INITIAL_NPC_GOAL_PROFILES[matchedNpc]?.nameFa ?? 'طرف مقابل';
+      return {
+        narrative: `${name} را با موضوعی که انتخاب کرده‌ای وارد گفت‌وگو می‌کنی. نگاهش برای چند لحظه از نقطهٔ اصلی صحنه جدا می‌شود؛ این فقط یک فرصت کوتاه می‌سازد و تضمین نمی‌کند حرکت بعدی را نبیند.`,
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
+
+    if (p === 'inspect') {
+      const observations: Record<string, string> = {
+        mani: 'مانی در ظاهر به بحث ادامه می‌دهد، اما انگشت‌هایش روی لبهٔ دستمال ثابت مانده و نگاهش هر چند ثانیه به میز پنج برمی‌گردد. این تنش قابل‌دیدن است، نه اثبات اینکه حرکت پنهانی تو را دیده یا علت ماجرا را می‌داند.',
+        yashin: 'یاشین وزنش را روی یک پا انداخته و خودکار را آهسته میان انگشت‌ها می‌چرخاند. چشمش بین صندوق و مانی جابه‌جا می‌شود؛ رفتارش احتیاط را نشان می‌دهد، نه اعتراف را.',
+        haniyeh: 'حانیه تبلت را نزدیک سینه نگه داشته و هر بار نام میز پنج می‌آید شانه‌هایش کمی جمع می‌شود. می‌توانی اضطراب را ببینی، اما موضوع دقیقش هنوز روشن نیست.',
+        salar: 'سالار هنگام بستن زونکن فشار بیشتری از حد لازم به گیره وارد می‌کند. لرزش کوتاه دستش واقعی است، اما از روی آن نمی‌شود میان ترس، خستگی و پنهان‌کاری یکی را قطعی دانست.',
+        collector: 'نمایندهٔ خریدار واکنش چهره‌اش را مهار می‌کند و پیش از هر پاسخ مکثی هم‌اندازه دارد. کنترلش حرفه‌ای است؛ آنچه پنهان می‌کند از مشاهدهٔ صرف معلوم نمی‌شود.',
+        exiting_man: 'مرد پالتوپوش بدنش را نیم‌رخ نگه داشته تا هم در و هم کوچه را ببیند. این جای‌گیری مسیر فرار را حفظ می‌کند، اما نیتش را ثابت نمی‌کند.',
+      };
+      return {
+        narrative: observations[matchedNpc] ?? 'رفتار ظاهری طرف مقابل را می‌سنجی، اما مشاهده را با خواندن ذهن او اشتباه نمی‌گیری.',
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
+
     if (matchedNpc === 'exiting_man') {
       if (p === 'ask' || p === 'persuade') {
+        if (/ممنون|مرسی|متشکرم|تشکر/.test(method)) {
+          return {
+            narrative: 'مرد پالتوپوش سرش را فقط به اندازهٔ یک تأیید کوتاه خم می‌کند. «برای تو باز نگه نداشتم.» دستش را از در پس می‌کشد و هوای سرد میان‌تان می‌افتد؛ پاسخ بی‌ادبانه نیست، اما دعوت هم نیست.',
+            acceptedEffects: [],
+            isSuccess: true,
+          };
+        }
+        if (/چرا.*(?:باز|هنوز)|هنوز.*باز|اینجا.*(?:چه|چی)|چه\s*جور\s*جایی/.test(method)) {
+          return {
+            narrative: 'مرد نگاه کوتاهی به نور پشت شیشه می‌اندازد: «من نگفتم برای مشتری‌ها بازه.» انگشت پوشیده‌اش از لبهٔ در جدا می‌شود. «گفتم هنوز بازه—برای کسی که باید چیزی را پس بگیره.» پیش از آن‌که بپرسی چه چیزی، نیم‌قدم به سمت کوچه عقب می‌رود.',
+            acceptedEffects: [],
+            isSuccess: true,
+          };
+        }
+        if (/اسم|کی\s*هستی|کیستی|اسمت|نامت/.test(method)) {
+          return {
+            narrative: 'مرد پالتوپوش نیم‌قدم عقب می‌رود، طوری که نور کافه فقط لبهٔ دستکش را بگیرد: «اسم من چیزی را عوض نمی‌کند. اگر می‌خواهی بدانی چرا اینجا بودم، از کسی بپرس که حاضر شد چیزی را که مالش نبود پس بدهد.» بعد نگاه کوتاهی به رسید خیس می‌اندازد.',
+            acceptedEffects: [],
+            isSuccess: true,
+          };
+        }
+        if (/چرا.*(?:می‌?ری|میری|می‌?روی|داری.*می‌?ری)|تو\s*خودت.*چرا|این\s*سرما/.test(method)) {
+          return {
+            narrative: 'مرد یقهٔ پالتو را بالاتر می‌کشد و نگاهش را به انتهای کوچه می‌دوزد: «چون چیزی که باید تحویل می‌گرفتم اینجا نبود. موندن، فقط به کسی که جابه‌جاش کرده وقت می‌ده.» نمی‌گوید دنبال چه بوده یا از کجا می‌داند جابه‌جا شده است.',
+            acceptedEffects: [],
+            isSuccess: true,
+          };
+        }
         return {
           narrative: 'مرد پالتوپوش نیم‌قدم عقب می‌رود، طوری که نور کافه فقط لبهٔ دستکش را بگیرد: «اسم من چیزی را عوض نمی‌کند. اگر می‌خواهی بدانی چرا اینجا بودم، از کسی بپرس که حاضر شد چیزی را که مالش نبود پس بدهد.» بعد نگاه کوتاهی به رسید خیس می‌اندازد. او جواب کامل نداده؛ عمداً انتخاب بعدی را بین تعقیب و حفظ صحنه گذاشته است.',
           acceptedEffects: [],
@@ -85,7 +148,9 @@ export function solveSemanticAction(
         state.clocks = risk.updatedClocks;
         effects.push({ type: 'modify_clock', clock: 'personalRisk', delta: 1, reason: 'رویارویی مستقیم با پیک دستکش قرمز' });
         return {
-          narrative: 'مرد نه ادعایت را تأیید می‌کند و نه عقب می‌نشیند. وزن بدنش را روی پای عقب می‌اندازد و مسیر فرار را باز نگه می‌دارد: «تهدیدی که پشتش مدرک نیست فقط زمان صاحبش را می‌سوزاند.» حالا می‌داند تو ممکن است وارد بازی شبکه شوی.',
+          narrative: p === 'deceive'
+            ? 'مرد نگاهش را از صورتت به دست‌ها و جیب کتت می‌برد، دنبال کارت یا نشانی که ادعایت را پشتیبانی کند. «بازرس بدون معرفی‌نامه، فقط یک مشتریه که دیر رسیده.» بلوفت او را نگه نمی‌دارد؛ اما حالا می‌داند حاضری هویت جعلی وارد بازی کنی.'
+            : 'مرد نه تهدیدت را تأیید می‌کند و نه عقب می‌نشیند. وزن بدنش را روی پای عقب می‌اندازد و مسیر فرار را باز نگه می‌دارد: «تهدیدی که پشتش مدرک نیست فقط زمان صاحبش را می‌سوزاند.» حالا می‌داند تو ممکن است وارد بازی شبکه شوی.',
           acceptedEffects: effects,
           isSuccess: true,
         };
@@ -174,6 +239,22 @@ export function solveSemanticAction(
     };
   }
 
+  // A door connects its two adjacent scenes. Closing it from just inside the
+  // cafe must not fail merely because the object's anchor is scene_entrance.
+  if (p === 'use' && targetObj?.id === 'cafe_door' && /باز|بند|بسته/.test(method)) {
+    const closing = /بند|بسته/.test(method) && !/باز/.test(method);
+    targetObj.state.isOpen = !closing;
+    state.environmentState.entranceDoorOpen = !closing;
+    effects.push({ type: 'modify_environment', key: 'entranceDoorOpen', value: !closing });
+    return {
+      narrative: closing
+        ? 'درِ شیشه‌ای را آرام پشت سرت می‌بندی. صدای باران ضعیف‌تر می‌شود، اما قفل را نمی‌اندازی و راه خروج همچنان باز است.'
+        : 'درِ شیشه‌ای را باز می‌کنی. هوای سرد و صدای باران برای لحظه‌ای وارد سالن می‌شود و مسیر رفت‌وآمد باز می‌ماند.',
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
   if (
     targetObj?.inspectionProfile &&
     !['follow', 'move'].includes(p) &&
@@ -204,6 +285,9 @@ export function solveSemanticAction(
         state.canonical.inventoryIds.push(inventoryId);
         effects.push({ type: 'add_inventory', itemId: inventoryId });
         targetObj.state.location = 'in_bag';
+        if (!/برمی‌?دار|داخل\s*(?:کیف|جیب)|درون\s*(?:کیف|جیب)/.test(inspection.narrative)) {
+          inspection.narrative = `${inspection.narrative}\n\n${targetObj.nameFa} را از جای خود برمی‌داری و در کیفت می‌گذاری. شیء همراه توست و دیگر در محل قبلی دیده نمی‌شود.`;
+        }
       }
     }
 
@@ -212,6 +296,149 @@ export function solveSemanticAction(
       acceptedEffects: effects,
       isSuccess: inspection.accessible,
       reasonIfFailed: inspection.accessible ? undefined : 'object_out_of_reach',
+    };
+  }
+
+  if (p === 'touch' && targetObj) {
+    if (targetObj.id === 'cat_penti') {
+      const firstComfort = !state.canonical.canonicalFlags.includes('penti_comforted');
+      if (firstComfort) {
+        state.canonical.canonicalFlags.push('penti_comforted');
+        effects.push({ type: 'set_flag', flag: 'penti_comforted', value: true });
+        if (state.scene.activeEntityIds.includes('haniyeh')) {
+          state.npcTrust.haniyeh = (state.npcTrust.haniyeh ?? 0) + 1;
+          effects.push({ type: 'modify_trust', npcId: 'haniyeh', delta: 1 });
+        }
+      }
+      return {
+        narrative: 'آرام کنار صندلی زانو می‌زنی و پشت گردن پنتی را نوازش می‌کنی. برای لحظه‌ای خودش را به انگشت‌هایت تکیه می‌دهد، اما گوش‌هایش با نزدیک شدن فنجان دوباره عقب می‌روند. حانیه این احتیاطت را می‌بیند.',
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
+
+    return {
+      narrative: `دستت را با احتیاط روی ${targetObj.nameFa} می‌گذاری. تماس، وضعیت فیزیکی آن را روشن‌تر می‌کند اما به‌تنهایی راز یا مدرک تازه‌ای نمی‌سازد.`,
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  if (p === 'use' && targetObj?.id === 'wooden_chair' && /شین|نشین/.test(method)) {
+    state.environmentState.playerPosture = 'seated_at_table5';
+    effects.push({ type: 'modify_environment', key: 'playerPosture', value: 'seated_at_table5' });
+    return {
+      narrative: 'صندلی چوبی را کمی عقب می‌کشی و کنار میز پنج می‌نشینی. از این زاویه لبهٔ فنجان، دست‌های حانیه و واکنش پنتی هم‌زمان در میدان دیدت‌اند؛ نشستن چیزی را خودکار کشف نمی‌کند، اما جایگاهت در گفت‌وگو عوض می‌شود.',
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  // Manipulating familiar scenery changes the world without manufacturing a
+  // clue. These branches describe observable physics and preserve uncertainty.
+  if (['use', 'move'].includes(p) && targetObj?.id === 'curtain' && /پرده|دید.*کوچه|می‌?کشم/.test(method)) {
+    const closing = /کامل|بسته|کور|می‌?کشم/.test(method) && !/باز\s*می‌?کن/.test(method);
+    targetObj.state.isOpen = !closing;
+    if (!targetObj.state.customAttributes) targetObj.state.customAttributes = {};
+    targetObj.state.customAttributes.coverage = closing ? 'closed' : 'open';
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects.curtain = closing ? 'closed_over_window' : 'opened_from_window';
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: closing
+        ? 'پردهٔ سنگین را روی ریل تا انتها می‌کشی. بازتاب کوچه و دید مستقیم از بیرون قطع می‌شود؛ در عوض خودت هم دیگر خیابان و خودروی روبه‌رو را نمی‌بینی. صدای حلقه‌های فلزی چند نگاه را به پنجره می‌کشاند.'
+        : 'پرده را کنار می‌زنی و شیشهٔ باران‌خورده دوباره پیدا می‌شود. میدان دید دوطرفه باز می‌گردد؛ هر کس بیرون باشد نیز روشنایی داخل را بهتر می‌بیند.',
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  if (p === 'use' && targetObj?.id === 'pos_terminal' && /روشنایی|نور.*نمایشگر|دکمه.*کنار|کم\s*می‌?کن/.test(method)) {
+    if (!targetObj.state.customAttributes) targetObj.state.customAttributes = {};
+    targetObj.state.customAttributes.displayBrightness = 'dim';
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects.pos_terminal = 'display_dimmed';
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: 'با دکمهٔ کناری، نور نمایشگر پوز را پایین می‌آوری. ارقام هنوز از روبه‌رو خوانا هستند اما انعکاس صفحه روی شیشه و صورت آدم‌های پشت کانتر ضعیف‌تر می‌شود؛ داده‌ای در صندوق تغییر نکرده است.',
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  if (p === 'use' && /(?:پسورد|رمز).*(?:حدس|امتحان)|(?:حدس|امتحان).*(?:پسورد|رمز)/.test(method)) {
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects[targetObj?.id ?? 'security_login'] = 'one_failed_login_attempt';
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: 'یک ترکیب را امتحان می‌کنی. سامانه آن را رد می‌کند و شمارندهٔ تلاش ناموفق از صفر به یک می‌رود؛ حدس کور نه دسترسی می‌دهد و نه رمز واقعی را لو می‌دهد، و تکرارش می‌تواند حساب را موقتاً قفل کند.',
+      acceptedEffects: effects,
+      isSuccess: false,
+      reasonIfFailed: 'credential_guess_failed',
+    };
+  }
+
+  if (['use', 'take', 'touch'].includes(p) && targetObj?.id === 'painting_back_label' && /جدا|کندن|بکن|یک‌?تکه/.test(method)) {
+    return {
+      narrative: 'کاغذ و چسبِ پیرِ برچسب به الیاف پشت بوم جوش خورده‌اند. گوشه‌ای که می‌گیری فوراً ریش‌ریش می‌شود؛ ادامه دادن بدون کاردک و تثبیت‌کننده نوشته را نابود می‌کند، پس برچسب یک‌تکه جدا نمی‌شود.',
+      acceptedEffects: [],
+      isSuccess: false,
+      reasonIfFailed: 'fragile_label_requires_tools',
+    };
+  }
+
+  if (p === 'use' && targetObj?.id === 'table5_saucer' && /جلوی\s*نور|بازتاب|روی\s*دیوار/.test(method)) {
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects.table5_saucer = 'used_as_light_reflector';
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: 'نعلبکی را جلوی چراغ می‌چرخانی. لعاب سفید یک لکهٔ نور کدر روی دیوار می‌اندازد و رد قرمز در آن کشیده و کم‌رنگ می‌شود؛ این بازتاب شکل لکه را بزرگ می‌کند، اما جنس یا منشأ آن را ثابت نمی‌کند.',
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  if (p === 'use' && targetObj?.id === 'table5_saucer' && /خراش|لبه.*(?:فیش|رسید|کاغذ)/.test(method)) {
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects.table5_saucer = 'paper_edge_tested_on_stain';
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: 'لبهٔ فیش را روی بخش کوچکی از لکه می‌کشی. کاغذ نم‌خورده پیش از لکه خم و ریش‌ریش می‌شود و فقط گرد بسیار کمی روی لبه‌اش می‌ماند؛ با این ابزار نمی‌توانی میان رنگ، جوهر یا لعاب فرق قطعی بگذاری.',
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  if (p === 'use' && /لیوان.*(?:مرتب|ردیف|می‌?چین)/.test(method)) {
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects.counter_cups = 'aligned_in_one_row';
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: 'لیوان‌های یک‌بارمصرف را از دسته‌های نامنظم جدا می‌کنی و در یک ردیف روی کانتر می‌چینی. فضای کار مرتب‌تر می‌شود، اما مانی با ابروی بالا آمده جابه‌جایی وسایل محدودهٔ کارش را زیر نظر می‌گیرد.',
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  if (p === 'use' && /پادری/.test(method)) {
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects.entrance_doormat = 'flattened';
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: 'گوشهٔ تاخوردهٔ پادری را با کف پا صاف می‌کنی. آب جمع‌شده زیر آن به شکل هلال باریکی بیرون می‌زند و مسیر ورودی هموار می‌شود؛ چیزی پنهان زیر پادری نیست.',
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  if (p === 'use' && /شیر\s*آب|سینک/.test(method) && /باز/.test(method)) {
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects.counter_sink = 'tap_running';
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: 'شیر سینک را باز می‌کنی. صدای پیوستهٔ آب بخشی از زمزمه‌های سالن را می‌پوشاند و مانی فوراً متوجه مصرف بی‌دلیل آب می‌شود؛ این پوشش صوتی واقعی است، اما نامرئی نیست.',
+      acceptedEffects: effects,
+      isSuccess: true,
     };
   }
 
@@ -270,6 +497,33 @@ export function solveSemanticAction(
     };
   }
 
+  // A movable prop can be repositioned inside the current scene even when the
+  // sentence also names its source table. Object-manipulation verbs win over
+  // room aliases; otherwise «منو را از میز پنج منتقل می‌کنم» teleports the
+  // player to table five and leaves the menu untouched.
+  if (
+    p === 'move' &&
+    targetObj?.properties.includes('movable') &&
+    /منتقل|جابه‌?جا|هل|پرت|سُر|می‌?کشم|بکشم|می‌?برم/.test(method)
+  ) {
+    const placement = /میز\s*(?:شماره\s*)?(۱|1|یک)/.test(method)
+      ? 'table_1'
+      : /کنار\s*در|جلوی\s*در/.test(method)
+        ? 'near_entrance'
+        : 'repositioned_in_scene';
+    if (!targetObj.state.customAttributes) targetObj.state.customAttributes = {};
+    targetObj.state.customAttributes.placement = placement;
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects[targetObj.id] = `moved:${placement}`;
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    const destination = placement === 'table_1' ? 'روی میز شمارهٔ ۱' : 'در جای تازه‌ای در همین صحنه';
+    return {
+      narrative: `${targetObj.nameFa} را برمی‌داری و ${destination} می‌گذاری. جای قبلی‌اش خالی می‌ماند و این تغییر چیدمان برای آدم‌های حاضر قابل‌دیدن است؛ خود جابه‌جایی سرنخ تازه‌ای تولید نمی‌کند.`,
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
   // 2e. Spatial Movement (Move / Walk to areas)
   if (p === 'move') {
     if (targetKey.includes('gallery') || method.includes('گالری') || method.includes('تابلو') || method.includes('نقاشی')) {
@@ -304,6 +558,27 @@ export function solveSemanticAction(
         isSuccess: true,
       };
     }
+  }
+
+  // Movable props also accept novel repositioning language with no named
+  // source/destination alias.
+  if (p === 'move' && targetObj?.properties.includes('movable')) {
+    const placement = /میز\s*(?:شماره\s*)?(۱|1|یک)/.test(method)
+      ? 'table_1'
+      : /کنار\s*در|جلوی\s*در/.test(method)
+        ? 'near_entrance'
+        : 'repositioned_in_scene';
+    if (!targetObj.state.customAttributes) targetObj.state.customAttributes = {};
+    targetObj.state.customAttributes.placement = placement;
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects[targetObj.id] = `moved:${placement}`;
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    const destination = placement === 'table_1' ? 'روی میز شمارهٔ ۱' : 'در جای تازه‌ای در همین صحنه';
+    return {
+      narrative: `${targetObj.nameFa} را برمی‌داری و ${destination} می‌گذاری. جای قبلی‌اش خالی می‌ماند و این تغییر چیدمان برای آدم‌های حاضر قابل‌دیدن است؛ خود جابه‌جایی سرنخ تازه‌ای تولید نمی‌کند.`,
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
   }
 
   // 2f. Smelling or Tasting Cup Chemical (Generic Chemical Affordance)
@@ -465,15 +740,70 @@ export function solveSemanticAction(
 
   // 2k. Hiding object under/behind another object (Generic Containment)
   if (p === 'hide' || (p === 'take' && method.includes('زیر'))) {
+    if (!targetObj) {
+      return {
+        narrative: 'محل پنهان‌کردن را می‌فهمم، اما شیئی که باید آنجا بماند در جمله یا دست تو مشخص نیست. جهان چیزی را از خودش انتخاب و جابه‌جا نمی‌کند.',
+        acceptedEffects: [],
+        isSuccess: false,
+        reasonIfFailed: 'hide_item_ambiguous',
+      };
+    }
     if (!state.environmentState.hiddenItems) {
       state.environmentState.hiddenItems = {};
     }
-    state.environmentState.hiddenItems['item_wet_receipt'] = 'under_cup';
+    const hiddenId = targetObj.id === 'wet_receipt' ? 'item_wet_receipt' : targetObj.id;
+    const hideSpotId = secObj?.id ?? (
+      secTargetKey === 'under_table5' || /زیر.*میز\s*(?:۵|5|پنج)/.test(method)
+        ? 'under_table5'
+        : /منو/.test(method)
+          ? 'table5_menu'
+          : /نعلبکی|فنجان/.test(method)
+            ? 'table5_saucer'
+            : 'concealed_in_current_scene'
+    );
+    state.environmentState.hiddenItems[hiddenId] = hideSpotId;
+    if (!targetObj.state.customAttributes) targetObj.state.customAttributes = {};
+    targetObj.state.customAttributes.hiddenAt = hideSpotId;
+    targetObj.state.location = state.canonical.currentScene || state.scene.sceneId;
     effects.push({ type: 'modify_environment', key: 'hiddenItems', value: state.environmentState.hiddenItems });
 
-    const hideSpotName = secObj ? secObj.nameFa : (method.includes('منو') ? 'پایه منو' : 'نعلبکی سرامیکی فنجان');
+    const hideSpotName = secObj?.nameFa ?? (
+      hideSpotId === 'under_table5'
+        ? 'میز شمارهٔ ۵'
+        : hideSpotId === 'table5_menu'
+          ? 'پایهٔ منو'
+          : hideSpotId === 'table5_saucer'
+            ? 'نعلبکی'
+            : 'نقطه‌ای دور از دید مستقیم'
+    );
     return {
-      narrative: `با یک حرکت سریع و بدون جلب توجه، مدرک را زیر ${hideSpotName} سُر می‌دهی تا از دید مستقیم پنهان بماند.`,
+      narrative: `${targetObj.nameFa} را زیر ${hideSpotName} می‌گذاری. از خط دید معمول پنهان می‌شود، اما جابه‌جایی‌اش واقعی است: اگر کسی محل قبلی را بررسی کند یا زیر آنجا را ببیند، می‌تواند پیدایش کند.`,
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  // Generic concrete use: persist the manipulation itself, not an invented
+  // discovery or guaranteed social outcome. Specific devices and props are
+  // handled above; this is the affordance-level safety net for novel methods.
+  if (p === 'use' && targetObj) {
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    state.environmentState.modifiedObjects[targetObj.id] = `used:${method.slice(0, 100)}`;
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: `از ${targetObj.nameFa} به روشی که توصیف کرده‌ای استفاده می‌کنی. وضعیت و جای تماس روی همان شیء باقی می‌ماند و افراد نزدیک می‌توانند حرکتت را ببینند؛ نتیجه‌ای فراتر از اثر فیزیکی این کار بدون شاهد یا آزمایش ساخته نمی‌شود.`,
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  if (p === 'use' && /مرتب|می‌?چین|صاف\s*می‌?کن|تنظیم\s*می‌?کن|باز\s*می‌?کن/.test(method)) {
+    if (!state.environmentState.modifiedObjects) state.environmentState.modifiedObjects = {};
+    const sceneKey = `scene_setup:${state.canonical.currentScene || state.scene.sceneId}`;
+    state.environmentState.modifiedObjects[sceneKey] = method.slice(0, 120);
+    effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
+    return {
+      narrative: 'تغییر فیزیکی را همان‌طور که گفتی در صحنه انجام می‌دهی. چیدمان تازه باقی می‌ماند و ممکن است روی دید، صدا یا واکنش بعدی اثر بگذارد؛ اما خودش مدرک یا موفقیت پنهانی تضمین‌شده نمی‌سازد.',
       acceptedEffects: effects,
       isSuccess: true,
     };
@@ -546,22 +876,8 @@ export function solveSemanticAction(
   if (p === 'record' || method.includes('ضبط') || method.includes('صدا')) {
     state.environmentState.recordingActive = true;
     effects.push({ type: 'modify_environment', key: 'recordingActive', value: true });
-    let discoveredAudioEvidence = false;
-    if (!state.canonical.evidenceIds.includes('fact_acoustic_distant_motorcycle')) {
-      state.canonical.evidenceIds.push('fact_acoustic_distant_motorcycle');
-      effects.push({ type: 'add_evidence', evidenceId: 'fact_acoustic_distant_motorcycle' });
-      discoveredAudioEvidence = true;
-    }
-    if (discoveredAudioEvidence && !state.proofDomains) {
-      state.proofDomains = { ART: 0, CHEM: 0, SYS: 0, SOCIAL: 0, FACTION: 0 };
-    }
-    if (discoveredAudioEvidence && state.proofDomains) {
-      state.proofDomains = addProofPoints(state.proofDomains, 'SYS', 1);
-      effects.push({ type: 'add_proof_domain', domain: 'SYS', points: 1 });
-    }
-
     return {
-      narrative: `دستگاه ضبط صدای گوشی را فعال می‌کنی. نویز محیطی کافه، صدای باران و زمزمه‌های بم دوردست با وضوح بالا ذخیره می‌شوند.`,
+      narrative: 'ضبط صدای گوشی را فعال می‌کنی. از این لحظه آنچه واقعاً به میکروفن برسد ذخیره می‌شود؛ روشن‌کردن ضبط به‌تنهایی صدای پنهان، هویت گوینده یا سرنخ تازه‌ای کشف نمی‌کند و فایل باید بعداً شنیده یا تحلیل شود.',
       acceptedEffects: effects,
       isSuccess: true,
     };

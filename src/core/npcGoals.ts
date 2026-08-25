@@ -98,6 +98,19 @@ export function evaluateNpcReaction(
         trustDelta: -1,
       };
     }
+    if (npcId === 'collector') {
+      return {
+        responseProse: 'صدای نمایندهٔ خریدار برای لحظه‌ای قطع می‌شود، بعد آرام‌تر برمی‌گردد: «تحویل پلیس؟ پس یک شمارهٔ ثبت یا تصویری از رسیدش بفرستید. اگر ندارید، دفعهٔ بعد بلوف را با چیزی خرج کنید که بتواند زنده بماند.» ادعایت او را وادار به عقب‌نشینی نمی‌کند؛ فقط شبکه را هوشیارتر می‌سازد.',
+        suspicionDelta: 15,
+        trustDelta: -1,
+        clockDelta: { clock: 'factionPressure', delta: 1 },
+      };
+    }
+    return {
+      responseProse: `${profile.nameFa} چند ثانیه ساکت می‌ماند و بعد جزئیات قابل‌بررسی ادعایت را می‌خواهد. بدون نشانه‌ای مستقل، داستانت را نمی‌پذیرد و از این پس حرف‌هایت را محتاطانه‌تر می‌سنجد.`,
+      suspicionDelta: 10,
+      trustDelta: -1,
+    };
   }
 
   // 2. Asking for private phone / personal belongings
@@ -141,6 +154,67 @@ export function evaluateNpcReaction(
   // 5. Inquiries & Social Conversation (Knowledge-card dispatch)
   if (primitive === 'ask' || primitive === 'persuade') {
     const raw = (method || target || '').toLowerCase();
+
+    if (/^(?:\s)*(?:سلام|درود|خسته\s*نباشید|شب\s*بخیر)(?:[،,!\s]|$)/.test(raw)) {
+      const greetings: Record<string, string> = {
+        haniyeh: 'حانیه با وجود نگرانی لبخند کوتاهی می‌زند: «سلام. ببخش اگه اوضاع عادی نیست؛ امشب میز پنج همه‌مون رو به‌هم ریخته.»',
+        yashin: 'یاشین دست از مرتب‌کردن فنجان‌ها می‌کشد: «سلام، خوش اومدی. اگر چیزی می‌خوای بگو؛ فقط امشب کمی سرمون شلوغ‌تر از معمول شده.»',
+        mani: 'مانی با تکان سر جواب می‌دهد: «سلام رفیق. پشت بار شلوغه، ولی صدات رو می‌شنوم.»',
+        salar: state.canonical.canonicalFlags.includes('player_salar_old_friend')
+          ? 'سالار نگاهش را بالا می‌آورد؛ برای یک لحظه اضطراب جایش را به آشنایی قدیمی می‌دهد: «سلام... ممنون که واقعاً اومدی. باید قبل از اینکه دیر بشه باهات حرف بزنم.»'
+          : 'سالار از پشت میز بلند می‌شود: «سلام. ممنون که این وقت شب اومدی؛ توضیح بده از کجا شروع کنیم.»',
+        collector: 'صدای نمایندهٔ خریدار آرام جواب می‌دهد: «شب بخیر. امیدوارم گفت‌وگویی دقیق‌تر از شایعات امشب داشته باشیم.»',
+      };
+      return { responseProse: greetings[npcId] ?? `${profile.nameFa} سلام کوتاهی می‌کند.`, suspicionDelta: 0, trustDelta: 0 };
+    }
+
+    const isDrinkOrder = /سفارش|(?:یه|یک)\s*(?:قهوه|اسپرسو)|(?:قهوه|اسپرسو).*(?:می‌?خوام|می‌?خواهم|بیار)/.test(raw);
+    if (isDrinkOrder && ['haniyeh', 'yashin', 'mani'].includes(npcId)) {
+      const orderResponses: Record<string, string> = {
+        haniyeh: 'حانیه سفارش را روی تبلت ثبت می‌کند: «یه اسپرسو؛ چشم. فقط اون فنجون روی میز پنج سفارش تو نیست—بهش دست نزن تا یاشین سفارشت رو بیاره.» سفارش واقعی ثبت می‌شود و فنجان مشکوک همچنان جدا می‌ماند.',
+        yashin: 'یاشین یک فنجان تمیز از گرم‌کن برمی‌دارد: «یه اسپرسوی تازه برات می‌زنم. فنجون میز پنج رو با این قاطی نکن؛ اون از قبل اینجا مونده.»',
+        mani: 'مانی سر تکان می‌دهد و پرتافیلتر تمیزی را جا می‌زند: «باشه رفیق؛ این یکی جلوی چشم خودت آماده می‌شه.»',
+      };
+      return {
+        responseProse: orderResponses[npcId],
+        suspicionDelta: 0,
+        trustDelta: 0,
+        setFlags: state.canonical.canonicalFlags.includes('player_ordered_espresso') ? [] : ['player_ordered_espresso'],
+      };
+    }
+
+    if (npcId === 'salar' && /زنگ|تماس|تلفن|پیام/.test(raw) && /رسیدم|اومدم|آمدم|اینجام|جلوی\s*کافه/.test(raw)) {
+      return {
+        responseProse: 'سالار تقریباً بی‌درنگ جواب می‌دهد؛ صدایش پایین است: «دیدمت. بیا داخل و مستقیم بیا دفتر—ولی اگر مردی با پالتوی تیره هنوز جلوی دره، مجبور نیستی نادیده‌اش بگیری. تصمیم با توئه.»',
+        suspicionDelta: 0,
+        trustDelta: 0,
+      };
+    }
+
+    if (npcId === 'haniyeh' && /سالار.*کجا|کجاست.*سالار/.test(raw)) {
+      return {
+        responseProse: 'حانیه با چانه به راهروی کنار سالن اشاره می‌کند: «اتاق حسابداریه، پشت همون در نیمه‌باز. از وقتی زنگ زد به تو، هی زونکن‌ها رو جابه‌جا می‌کنه.»',
+        suspicionDelta: 0,
+        trustDelta: 0,
+      };
+    }
+
+    if (npcId === 'haniyeh' && /(?:قهوه|فنجان).*(?:مال|برای).*(?:کی|چه\s*کسی)|(?:مال|برای).*(?:کی|چه\s*کسی).*(?:قهوه|فنجان)/.test(raw)) {
+      return {
+        responseProse: 'حانیه به میز پنج نگاه می‌کند: «برای همون مرد پالتوپوش بود. سفارش داد، ولی تقریباً دست‌نخورده گذاشت و رفت.» این گفتهٔ حانیه است؛ هنوز معلوم نمی‌کند چرا فنجان را رها کرده.',
+        suspicionDelta: 0,
+        trustDelta: 0,
+      };
+    }
+
+    if (npcId === 'haniyeh' && /پنتی|گربه/.test(raw)) {
+      return {
+        responseProse: 'حانیه کنار صندلی خم می‌شود: «از وقتی اون مرد کنار میز پنج بود، پنتی به فنجون نزدیک نمی‌شه. نمی‌دونم از بو ترسیده، از حرکتش، یا از یه چیز دیگه.» حرفش علت را ثابت نمی‌کند، اما زمان شروع رفتار پنتی را روشن می‌کند.',
+        suspicionDelta: 0,
+        trustDelta: 0,
+      };
+    }
+
     const route = NPC_ROUTE_CARDS[npcId];
     if (!route) {
       return { responseProse: `${profile.nameFa} با دقت به حرفت گوش می‌دهد.`, suspicionDelta: 0, trustDelta: 0 };

@@ -5,6 +5,7 @@ interface EmergentTest {
   name: string;
   nodeSetup: string;
   input: string;
+  prepare?: (state: any) => void;
   expectedStateCheck: (state: any) => boolean;
   expectedNarrativeKeywords: string[];
 }
@@ -32,11 +33,11 @@ const EMERGENT_TESTS: EmergentTest[] = [
     expectedNarrativeKeywords: ['قفل', 'ورود'],
   },
   {
-    name: '4. Recording ambient audio in alley with smartphone',
+    name: '4. Starting an audio recording without receiving a free clue',
     nodeSetup: 'NODE_01',
     input: 'گوشی رو درمیارم و صدای داخل کوچه حسینی رو ضبط می‌کنم',
-    expectedStateCheck: (s) => s.environmentState?.recordingActive === true && s.canonical.evidenceIds.includes('fact_acoustic_distant_motorcycle'),
-    expectedNarrativeKeywords: ['ضبط', 'صدا', 'موتور'],
+    expectedStateCheck: (s) => s.environmentState?.recordingActive === true && !s.canonical.evidenceIds.includes('fact_acoustic_distant_motorcycle'),
+    expectedNarrativeKeywords: ['ضبط', 'سرنخ'],
   },
   {
     name: '5. Tearing wet receipt to alter evidence',
@@ -49,21 +50,25 @@ const EMERGENT_TESTS: EmergentTest[] = [
     name: '6. Hiding receipt under coffee cup',
     nodeSetup: 'NODE_02',
     input: 'رسید رو یواشکی می‌ذارم زیر فنجان قهوه میز ۵ تا ببینم کسی متوجه می‌شه یا نه',
-    expectedStateCheck: (s) => s.environmentState?.hiddenItems?.item_wet_receipt === 'under_cup',
+    prepare: (s) => {
+      s.canonical.inventoryIds.push('item_wet_receipt');
+      if (s.worldObjects?.wet_receipt) s.worldObjects.wet_receipt.state.location = 'in_bag';
+    },
+    expectedStateCheck: (s) => s.environmentState?.hiddenItems?.item_wet_receipt === 'table5_saucer',
     expectedNarrativeKeywords: ['نعلبکی', 'فنجان', 'پنهان'],
   },
   {
     name: '7. Packing coffee cup into bag',
     nodeSetup: 'NODE_02',
     input: 'فنجان رو می‌ذارم داخل کیفم تا نمونه رو ببرم',
-    expectedStateCheck: (s) => s.canonical.inventoryIds.includes('item_sample_cup') && s.canonical.evidenceIds.includes('fact_solvent_smell_cup'),
+    expectedStateCheck: (s) => s.canonical.inventoryIds.includes('item_sample_cup') && !s.canonical.evidenceIds.includes('fact_solvent_smell_cup'),
     expectedNarrativeKeywords: ['کیف', 'فنجان', 'حانیه'],
   },
   {
     name: '8. Bluffing to Salar that police are waiting outside',
     nodeSetup: 'NODE_11',
     input: 'به سالار صالحی دروغ می‌گم که گشت پلیس پایین منتظر گزارشه',
-    expectedStateCheck: (s) => (s.npcPressure?.salar ?? 0) >= 2 && s.clocks?.policeAttention >= 1,
+    expectedStateCheck: (s) => (s.npcTrust?.salar ?? 0) <= -1 && s.clocks?.policeAttention >= 1,
     expectedNarrativeKeywords: ['پلیس', 'سالار', 'پرونده'],
   },
   {
@@ -98,8 +103,8 @@ const EMERGENT_TESTS: EmergentTest[] = [
     name: '13. Standing in total silence for 5 minutes',
     nodeSetup: 'NODE_02',
     input: 'پنج دقیقه هیچ کاری نمی‌کنم و فقط سکوت می‌کنم',
-    expectedStateCheck: (s) => s.canonical.evidenceIds.includes('fact_guest_hesitation'),
-    expectedNarrativeKeywords: ['سکوت', 'حانیه', 'یاشین'],
+    expectedStateCheck: (s) => !s.canonical.evidenceIds.includes('fact_guest_hesitation') && s.scene.turn > 0,
+    expectedNarrativeKeywords: ['سکوت', 'سرنخ'],
   },
   {
     name: '14. Trespassing behind the barista counter',
@@ -126,15 +131,15 @@ const EMERGENT_TESTS: EmergentTest[] = [
     name: '17. Checking POS order logs',
     nodeSetup: 'NODE_03',
     input: 'مانیتور پوز و لاگ سفارش‌ها رو بررسی می‌کنم',
-    expectedStateCheck: (s) => s.canonical.evidenceIds.includes('fact_pos_order_timestamp') && s.proofDomains?.SYS >= 2,
-    expectedNarrativeKeywords: ['پوز', 'لاگ'],
+    expectedStateCheck: (s) => s.canonical.evidenceIds.includes('fact_pos_order_timestamp') && s.proofDomains?.SYS >= 1,
+    expectedNarrativeKeywords: ['گزارش', '۰۰:۱۱'],
   },
   {
     name: '18. Examining office financial ledger',
     nodeSetup: 'NODE_11',
     input: 'زونکن فاکتورهای دفتر حسابداری رو باز می‌کنم',
-    expectedStateCheck: (s) => s.canonical.evidenceIds.includes('fact_invoice_lot55_seal'),
-    expectedNarrativeKeywords: ['زونکن', 'فاکتور', 'پلاک'],
+    expectedStateCheck: (s) => s.canonical.evidenceIds.includes('fact_invoice_text_rg_lot55_returned') && !s.canonical.evidenceIds.includes('fact_invoice_lot55_seal'),
+    expectedNarrativeKeywords: ['زونکن', 'Lot 55'],
   },
   {
     name: '19. Interrogating Yashin about exit time',
@@ -147,8 +152,8 @@ const EMERGENT_TESTS: EmergentTest[] = [
     name: '20. Asking Mani about cup chemical smell',
     nodeSetup: 'NODE_03',
     input: 'از مانی درباره بوی تند حلال روی فنجان سوال می‌کنم',
-    expectedStateCheck: (s) => s.canonical.evidenceIds.includes('fact_solvent_smell_cup'),
-    expectedNarrativeKeywords: ['مانی', 'تینر'],
+    expectedStateCheck: (s) => !s.canonical.evidenceIds.includes('fact_solvent_smell_cup'),
+    expectedNarrativeKeywords: ['اسپرسو', 'نازل'],
   },
   {
     name: '21. Talking to Haniyeh about the guest',
@@ -175,15 +180,15 @@ const EMERGENT_TESTS: EmergentTest[] = [
     name: '24. Bluffing the Collector in Node 16',
     nodeSetup: 'NODE_16',
     input: 'به کلکسیونر بلوف می‌زنم که مدارک جعلی رو تحویل پلیس دادم',
-    expectedStateCheck: (s) => (s.npcPressure?.collector ?? 0) >= 2,
-    expectedNarrativeKeywords: ['کلکسیونر'],
+    expectedStateCheck: (s) => (s.clocks?.factionPressure ?? 0) >= 1 && (s.npcTrust?.collector ?? 0) <= -1,
+    expectedNarrativeKeywords: ['مدرک', 'بلوف'],
   },
   {
     name: '25. Discovering historical breach in Node 18',
     nodeSetup: 'NODE_18',
     input: 'لایه باستانی و سند کهن کارگاه فلورانس را کشف می‌کنم',
-    expectedStateCheck: (s) => s.canonical.evidenceIds.includes('fact_florence_historical_breach') && s.proofDomains?.FACTION >= 3,
-    expectedNarrativeKeywords: ['فلورانس', 'چهار', 'نشانه'],
+    expectedStateCheck: (s) => !s.canonical.evidenceIds.includes('fact_florence_historical_breach') && s.canonical.currentNode === 'NODE_18',
+    expectedNarrativeKeywords: [],
   },
   {
     name: '26. Reckless drinking of cup',
@@ -248,6 +253,7 @@ async function runEmergentTestSuite() {
     state.canonical.currentScene = test.nodeSetup.toLowerCase();
     state.scene.sceneId = test.nodeSetup.toLowerCase();
     state.canonical.playerClass = 'investigator';
+    test.prepare?.(state);
 
     const result = await resolvePlayerTurn(state, test.input);
 

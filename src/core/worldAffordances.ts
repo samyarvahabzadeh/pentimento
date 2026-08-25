@@ -39,7 +39,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
     id: 'cafe_door',
     nameFa: 'درِ ورودی شیشه‌ای با لولا و دستگیره برنجی',
     properties: ['solid', 'lockable', 'transparent', 'immovable'],
-    affordances: ['move', 'lock', 'block', 'inspect', 'touch'],
+    affordances: ['move', 'lock', 'block', 'inspect', 'touch', 'use'],
     state: { location: 'scene_entrance', isOpen: false, isLocked: false },
     inspectionProfile: {
       defaultObservation: 'درِ ورودی شیشه‌ای با لولا و دستگیره برنجی، مرز بین سرمای بارانی کوچه و فضای گرم داخلی کافه است.',
@@ -100,7 +100,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
     id: 'table5_saucer',
     nameFa: 'نعلبکی سرامیکی میز ۵ با رد قرمز براق',
     properties: ['movable', 'solid', 'reflective', 'container'],
-    affordances: ['inspect', 'take', 'touch', 'damage'],
+    affordances: ['inspect', 'take', 'touch', 'damage', 'use', 'move'],
     state: { location: 'scene_table5', underneath: [] },
     inspectionProfile: {
       defaultObservation: 'نعلبکی سرامیکی سفید رنگ زیر فنجان با لکهٔ قرمزرنگ براقی در حاشیه دیده می‌شود که شبیه رنگ لعاب یا جوهر ضدآب است.',
@@ -119,7 +119,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
     id: 'table5_menu',
     nameFa: 'پایه منوی مقوایی رومیزی',
     properties: ['movable', 'readable', 'flammable'],
-    affordances: ['inspect', 'take', 'damage', 'touch'],
+    affordances: ['inspect', 'take', 'damage', 'touch', 'move', 'use'],
     state: { location: 'scene_table5', underneath: [] },
     inspectionProfile: {
       defaultObservation: 'پایه منوی مقوایی رومیزی لیست نوشیدنی‌ها را نشان می‌دهد. در حاشیهٔ پایین آن با خودکار آبی شماره‌ای کم‌رنگ یادداشت شده است.',
@@ -137,7 +137,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
         {
           id: 'receipt_recovered',
           primitives: ['inspect', 'take'],
-          observation: 'رسید خیس را از زمین برمی‌داری و میان انگشت‌ها صاف می‌کنی. فیش به سفارش میز ۵ مربوط است، اما جزئیات چاپ هنوز به دقت بیشتری نیاز دارد.',
+          observation: 'روی سنگ‌فرش خم می‌شوی و رسید نم‌کشیده را از نزدیک می‌بینی. فیش به سفارش میز ۵ مربوط است، اما جزئیات چاپ هنوز به دقت بیشتری نیاز دارد.',
           evidenceIds: ['fact_wet_receipt'],
           priority: 5,
         },
@@ -360,7 +360,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
     id: 'curtain',
     nameFa: 'پرده ضخیم مخمل پنجره',
     properties: ['movable', 'flammable'],
-    affordances: ['move', 'inspect', 'touch'],
+    affordances: ['move', 'inspect', 'touch', 'use'],
     state: { location: 'scene_table5', isOpen: true },
     inspectionProfile: {
       defaultObservation: 'پرده ضخیم مخمل پنجره به یک سو کشیده شده و قطرات باران روی لبهٔ زیرین پارچه نم انداخته است.',
@@ -370,7 +370,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
     id: 'smartphone',
     nameFa: 'گوشی هوشمند شخصی با ضبط صوت و دوربین',
     properties: ['electronic', 'acoustic', 'movable'],
-    affordances: ['record', 'inspect', 'use', 'take'],
+    affordances: ['record', 'inspect', 'use', 'take', 'hide'],
     state: { location: 'in_pocket', isOn: true },
     inspectionProfile: {
       defaultObservation: 'گوشی هوشمند در جیبت با پیام‌های صوتی سالار و ضبط صوت فعال آمادهٔ ثبت رویدادها است.',
@@ -380,7 +380,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
     id: 'barista_counter',
     nameFa: 'پیشخوان چوبی صیقلی بار',
     properties: ['solid', 'immovable', 'heavy'],
-    affordances: ['inspect', 'touch'],
+    affordances: ['inspect', 'touch', 'use'],
     state: { location: 'scene_counter' },
     inspectionProfile: {
       defaultObservation: 'پیشخوان چوبی صیقلی کافه زیر نور ملایم چراغ‌های آویز تمیز به نظر می‌رسد و لکه‌ای از بخار اسپرسو روی چوب بلوط آن دیده می‌شود.',
@@ -598,7 +598,7 @@ export function findWorldObject(keyword: string, objects: Record<string, WorldOb
     }
   }
   // Specific and ordered keyword mappings
-  if (/مرد.*(پالتو|دستکش|خروج)|پالتوپوش|دستکش.*قرمز/.test(norm)) return objects.exiting_man;
+  if (/مرد.*(پالتو|دستکش|خروج)|پالتوپوش|پالتوش|دست(?:‌|\s*)هاش|دستکش(?:ش|.*قرمز)/.test(norm)) return objects.exiting_man;
   if (/زونکن|اسناد|سند|مدارک|دفتر.*حسابداری|دفتر.*مالی|فاکتور.*سالار|فاکتور.*پلاک|فاکتور/.test(norm)) return objects.office_ledger;
   if (/برچسب.*(پشت|مالکیت)|اعداد.*(برچسب|تابلو)|label/.test(norm)) return objects.painting_back_label;
   if (/پنتی|گربه|بچه‌گربه/.test(norm)) return objects.cat_penti;
@@ -608,9 +608,9 @@ export function findWorldObject(keyword: string, objects: Record<string, WorldOb
   if (/دستگاه.*اسپرسو|اسپرسوساز/.test(norm)) return objects.espresso_machine;
   if (/فنجان|فنجون|اسپرسو|مایع.*فنجان/.test(norm) || hasStandaloneLexeme(norm, 'کاپ')) return objects.table5_cup;
   if (/نعلبکی|زیر.*فنجان/.test(norm)) return objects.table5_saucer;
-  if (/منو|پایه.*منو/.test(norm)) return objects.table5_menu;
+  if (/پایه.*منو|منوی/.test(norm) || hasStandaloneLexeme(norm, 'منو')) return objects.table5_menu;
   if (/پوز|مانیتور.*پوز|لاگ|ثبت.*سفارش/.test(norm)) return objects.pos_terminal;
-  if (/رسید|فیش|کاغذ.*خیس|برگه.*خیس|نم‌کشیده/.test(norm)) return objects.wet_receipt;
+  if (hasStandaloneLexeme(norm, 'رسید') || /فیش|کاغذ.*خیس|برگه.*خیس|نم‌کشیده|کف.*(?:پیاده‌رو|ورودی)|سنگ‌?فرش/.test(norm)) return objects.wet_receipt;
   if (/دوربین|cctv|مانیتور.*دوربین/.test(norm)) return objects.cctv_system;
   if (/نازل|لوله.*بخار/.test(norm)) return objects.steam_wand;
   if (/کانتر|پیشخوان|میز.*بار/.test(norm)) return objects.barista_counter;
@@ -634,7 +634,7 @@ export function findLocation(keyword: string): LocationDefinition | undefined {
   // Directional phrases take precedence over object aliases.  In particular,
   // "enter the cafe" must not resolve back to the entrance merely because the
   // semantic target is the door handle.
-  if (/وارد.*(کافه|سالن)|داخل.*(کافه|سالن)|پا.*(کافه|سالن)|گرمای.*سالن/.test(norm)) return LOCATION_REGISTRY.scene_table5;
+  if (/وارد.*(کافه|سالن)|داخل.*(کافه|سالن)|(?:می‌?ر(?:م|وم)|میرم|برم|می‌?آم|میام).*?(?:تو|داخل).*?(?:کافه|سالن)|پا.*(کافه|سالن)|گرمای.*سالن/.test(norm)) return LOCATION_REGISTRY.scene_table5;
   if (/(?:از\s+کافه\s+خارج|خارج\s+(?:از\s+)?کافه|بیرون\s+(?:از\s+)?کافه)|برگرد.*کوچه|سمت.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_entrance;
   if (/پشت.*(تابلو|بوم|قاب)|painting.*back|back.*label/.test(norm)) return LOCATION_REGISTRY.scene_painting_back;
   if (/gallery|painting|central_painting|گالری|دیوار.*گالری|تابلو|نقاشی/.test(norm)) return LOCATION_REGISTRY.scene_gallery;

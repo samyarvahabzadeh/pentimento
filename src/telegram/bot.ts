@@ -143,11 +143,12 @@ bot.command('restart', async (ctx) => {
 bot.command('debug_version', async (ctx) => {
   const info = [
     `📦 *Pentimento Engine Build Manifest*`,
-    `• *Build ID:* \`pentimento-living-situation-20260825\``,
-    `• *Story Schema Version:* \`v2.7.0-living-situation\``,
+    `• *Build ID:* \`pentimento-conversational-freedom-20260825\``,
+    `• *Story Schema Version:* \`v2.8.0-conversational-freedom\``,
     `• *Runtime SHA256:* \`${buildAttestation.fingerprint}\``,
     `• *Attested Files:* \`${buildAttestation.fileCount}\``,
     `• *Generic Dispatch:* \`SCENE_GROUNDED\``,
+    `• *Conversational Contract:* \`FREE IDENTITY / ADDRESSEE AWARE / NATURAL SCENE QUESTIONS\``,
     `• *Evidence Gating:* \`LAYERED / NO REWARD FARMING\``,
     `• *NPC Knowledge Cards:* \`ACTIVE\``,
     `• *Situation Fronts:* \`3 ACTIVE / FAIL-FORWARD\``,
