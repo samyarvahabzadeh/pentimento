@@ -7,6 +7,7 @@ interface AdversarialTestCase {
   input: string;
   node: string;
   role: string;
+  setup?: (state: any) => void;
   expectedProperties: {
     mustNotCrash: boolean;
     mustNotGiveGenericRejection: boolean;
@@ -93,13 +94,18 @@ export const ADVERSARIAL_TESTS: AdversarialTestCase[] = [
   {
     id: 7,
     category: 'Multi-Action Decomposition',
-    input: 'مانی را با بحث قهوه سرگرم می‌کنم، رسید را زیر منو می‌گذارم و بعد واکنشش را نگاه می‌کنم',
-    node: 'NODE_03',
+    input: 'حانیه را با بحث قهوه سرگرم می‌کنم، رسید را زیر منو می‌گذارم و بعد واکنشش را نگاه می‌کنم',
+    node: 'NODE_02',
     role: 'investigator',
+    setup: state => {
+      state.canonical.inventoryIds.push('item_wet_receipt');
+      state.worldObjects.wet_receipt.state.location = 'in_bag';
+    },
     expectedProperties: {
       mustNotCrash: true,
       mustNotGiveGenericRejection: true,
-      stateVerification: (b, a, n) => a.environmentState?.hiddenItems !== undefined || n.includes('مرحله'),
+      stateVerification: (b, a) =>
+        a.environmentState?.hiddenItems?.item_wet_receipt === 'table5_menu',
     },
   },
   {
@@ -784,6 +790,7 @@ export async function runAdversarialAudit() {
     state.canonical.currentScene = t.node.toLowerCase();
     state.scene.sceneId = t.node.toLowerCase();
     state.canonical.playerClass = t.role as any;
+    t.setup?.(state);
 
     const stateBefore = JSON.parse(JSON.stringify(state));
 

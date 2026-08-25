@@ -47,6 +47,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   const explicitDeception = /دروغ|بلوف|وانمود|ادعا.*(?:جعلی|غلط|کرده)|فریب|اطلاعات.*غلط|(?:بازرس|از\s*اماکن).*(?:هستم|اومدم|آمدم|بازرسی)/.test(norm);
   const explicitThreat = /اگه.*(?:نگی|نکنی)|اگر.*(?:نگویی|نکنی)|وگرنه|تهدید|گشت.*تماس|تماس.*گشت|پلیس.*(?:خبر|تماس)|بهتره.*(?:جواب|بگی)/.test(norm);
   const explicitConversation = /(?:^|[،,\s])(?:سلام|درود|خسته\s*نباشید|شب\s*بخیر|ممنون|مرسی|متشکرم)(?:$|[،,!\s])|می‌?(?:گم|گویم)|میگم|زنگ\s*می‌?زن|تماس\s*می‌?گیر|پیام\s*می‌?(?:دم|دهم)/.test(norm);
+  const explicitReport = /به\s+(?:سالار|صالحی|حانیه|یاشین|مانی|کلکسیونر|خریدار).*?(?:می‌?گم|میگم|می‌?گویم|توضیح\s*می‌?(?:دم|دهم)|خبر\s*می‌?(?:دم|دهم)).*(?:کردم|گفتم|شنیدم|دیدم|فهمید|بود|شد|رفت)/.test(norm);
   const orderRequest = /سفارش\s*می‌?(?:دم|دهم)|(?:قهوه|اسپرسو|نوشیدنی).*(?:می‌?خوام|می‌?خواهم|بیار|لطفا)|(?:یه|یک)\s*(?:قهوه|اسپرسو).*(?:سفارش|می‌?خوام|می‌?خواهم)/.test(norm);
 
   // 1. Generic Primitive Extraction
@@ -55,6 +56,8 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   if (state.canonical?.currentNode === 'NODE_00' && isPlayerIdentityDeclaration(norm)) {
     primitive = 'improvise';
     confidence = 0.99;
+  } else if (explicitReport) {
+    primitive = 'ask';
   } else if (explicitDeception) {
     primitive = 'deceive';
   } else if (explicitThreat) {

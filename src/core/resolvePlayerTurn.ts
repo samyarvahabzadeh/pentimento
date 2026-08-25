@@ -168,7 +168,7 @@ export async function resolvePlayerTurn(
         { skipCompoundDecomposition: true, semanticOverride: subActions[index] }
       );
       componentResults.push(component);
-      narratives.push(`[مرحلهٔ ${index + 1}]: ${component.narrative}`);
+      narratives.push(component.narrative);
     }
 
     const subtraces = componentResults
@@ -188,6 +188,8 @@ export async function resolvePlayerTurn(
       stateChanges: subtraces.flatMap(item => item.stateChanges),
       ...delta,
       subtraces,
+      situationEvents: subtraces.flatMap(item => item.situationEvents ?? []),
+      situationRoutesAdded: subtraces.flatMap(item => item.situationRoutesAdded ?? []),
       fallbackUsed: subtraces.some(item => item.fallbackUsed),
     };
     state.lastTurnTrace = trace;
@@ -238,7 +240,11 @@ export async function resolvePlayerTurn(
   const semantic = options.semanticOverride ?? extractSemanticAction(playerInput, state);
   const conversationalIntent = classifyConversationalIntent(playerInput);
   const isPureConversationalIntent = Boolean(
-    conversationalIntent && semantic.primitive === 'inspect' && semantic.target === 'scene_overview'
+    conversationalIntent && (
+      conversationalIntent === 'scene_listen' ||
+      conversationalIntent === 'scene_peek' ||
+      (semantic.primitive === 'inspect' && semantic.target === 'scene_overview')
+    )
   );
   const identityCorrection = detectIdentityCorrection(playerInput, state);
   const directNpcIds = ['salar', 'mani', 'yashin', 'haniyeh', 'collector', 'exiting_man'];
@@ -391,7 +397,12 @@ export async function resolvePlayerTurn(
 
   // ─── STEP 2: Generic MOVE Dispatch ───
   const isObjectManipulationMove = /هل|پرت|جابه‌?جا|منتقل|سُر|می‌?کشم|بکشم|بلند|پرده/.test(playerInput);
-  if (!specialCandidateUsed && semantic.primitive === 'move' && semantic.target !== 'behind_counter' && !isObjectManipulationMove) {
+  // A sentence can contain both entering and closing the door. The semantic
+  // extractor reasonably notices the final `use door` verb, but the spatial
+  // transition must still happen before that door state is applied.
+  const explicitCafeEntry = normalizeSceneId(state.canonical.currentScene || state.scene.sceneId) === 'scene_entrance' &&
+    /(?:وارد\s*(?:کافه|سالن)|(?:می\s*?روم|می\s*?رم|میرم|میام|می‌آیم)\s*(?:تو|داخل)\s*(?:کافه|سالن))/.test(playerInput);
+  if (!specialCandidateUsed && (semantic.primitive === 'move' || explicitCafeEntry) && semantic.target !== 'behind_counter' && !isObjectManipulationMove) {
     const targetLoc =
       findLocation(playerInput) ||
       inferImplicitDestination(playerInput, state) ||
@@ -425,9 +436,19 @@ export async function resolvePlayerTurn(
         if (fromScene !== targetLoc.sceneId) {
           effects.push({ type: 'change_scene', sceneId: targetLoc.sceneId, nodeId: targetLoc.nodeId });
         }
+        const enteringFromStreet = fromScene === 'scene_entrance' && targetLoc.sceneId === 'scene_table5';
+        const closesDoorOnEntry = enteringFromStreet && /(?:در|درب).*(?:پشت\s*سر)?.*(?:می\s*)?(?:بند|بسته)|پشت\s*سرم.*(?:می\s*)?بند/.test(playerInput);
+        if (enteringFromStreet) {
+          const environmentState = state.environmentState ?? (state.environmentState = {});
+          environmentState.entranceDoorOpen = !closesDoorOnEntry;
+          if (state.worldObjects?.cafe_door) state.worldObjects.cafe_door.state.isOpen = !closesDoorOnEntry;
+          effects.push({ type: 'modify_environment', key: 'entranceDoorOpen', value: !closesDoorOnEntry });
+        }
         resolution = createTurnResolution('GENERIC_MOVE', effects);
-        rawNarrative = fromScene === 'scene_entrance' && targetLoc.sceneId === 'scene_table5'
-          ? 'در شیشه‌ای را پشت سر می‌بندی و وارد سالن اصلی کافه می‌شوی. چند قدم جلوتر، میز شمارهٔ ۵ با فنجان رهاشده دیده می‌شود؛ حانیه نزدیک میز ایستاده و پنتی زیر صندلی کز کرده است.'
+        rawNarrative = enteringFromStreet
+          ? `${closesDoorOnEntry
+              ? 'وارد سالن اصلی کافه می‌شوی و درِ شیشه‌ای را پشت سرت چفت می‌کنی.'
+              : 'درِ شیشه‌ای را هل می‌دهی و وارد سالن اصلی کافه می‌شوی؛ در پشت سرت آرام برمی‌گردد، اما کامل چفت نمی‌شود.'} چند قدم جلوتر، میز شمارهٔ ۵ با فنجان رهاشده دیده می‌شود؛ حانیه نزدیک میز ایستاده و پنتی زیر صندلی کز کرده است.`
           : targetLoc.defaultDescription;
       }
     }
@@ -439,11 +460,18 @@ export async function resolvePlayerTurn(
   if (!specialCandidateUsed && !rawNarrative && conversationalIntent && isPureConversationalIntent) {
     resolutionPath = 'conversational_grounding';
     source = 'deterministic';
+    const conversationalCandidate = conversationalIntent === 'situation_recap'
+      ? { id: 'SITUATION_RECAP', summary: 'مرور آنچه اکنون معلوم است' }
+      : conversationalIntent === 'scene_listen'
+        ? { id: 'SCENE_LISTEN', summary: 'گوش‌دادن به صحنهٔ فعلی' }
+        : conversationalIntent === 'scene_peek'
+          ? { id: 'SCENE_PEEK', summary: 'نگاه‌کردن از زاویهٔ محدود' }
+          : { id: 'SCENE_OVERVIEW', summary: 'دیدن صحنهٔ فعلی' };
     selectedCandidate = makeSyntheticCandidate(
-      conversationalIntent === 'situation_recap' ? 'SITUATION_RECAP' : 'SCENE_OVERVIEW',
+      conversationalCandidate.id,
       'inspect',
       ['scene_overview'],
-      conversationalIntent === 'situation_recap' ? 'مرور آنچه اکنون معلوم است' : 'دیدن صحنهٔ فعلی',
+      conversationalCandidate.summary,
     );
     resolution = createTurnResolution(selectedCandidate.id);
     rawNarrative = renderSceneOverview(state, conversationalIntent);

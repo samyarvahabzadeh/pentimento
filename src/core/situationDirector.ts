@@ -161,7 +161,7 @@ function currentNpcId(context: SituationTurnContext): string | undefined {
 function buildFingerprint(context: SituationTurnContext): string {
   const npcId = currentNpcId(context);
   if (npcId && ['ask', 'persuade', 'threaten', 'accuse', 'deceive'].includes(context.primitive)) {
-    return `${context.primitive}:${npcId}:${classifyTopic(context.rawInput)}`;
+    return `${context.primitive}:${npcId}:${classifyTopic(context.rawInput)}:${context.sceneAfter}`;
   }
   return `${context.primitive}:${context.target ?? classifyTopic(context.rawInput)}`;
 }
@@ -203,7 +203,7 @@ function repeatNpcNarrative(
     case 'mani':
       return 'مانی ابرو بالا می‌اندازد: «همون چیزی که دیدم گفتم. اگر دنبال جواب تازه‌ای، سؤال تازه یا یک تست واقعی بیار.» نگاهش برای لحظه‌ای به نازل بخار می‌لغزد؛ او ترجیح می‌دهد عمل را ببیند.';
     case 'yashin':
-      return 'یاشین این بار پاسخ حفظ‌شده نمی‌دهد. ساعت دستگاه و ساعت مچی‌اش را کنار هم می‌گذارد: «اگر زمان مهمه، با هم اندازه بگیریم؛ حدس من مدرک نیست.» او راه همکاری را باز کرده، اما نتیجه را مجانی تحویل نمی‌دهد.';
+      return 'یاشین این بار پاسخ قبلی را تکرار نمی‌کند. ساعت دستگاه و ساعت مچی‌اش را کنار هم می‌گذارد: «اگر زمان مهمه، با هم اندازه بگیریم؛ حدس من مدرک نیست.» خودکارش را به سمت کاغذ خالی می‌گیرد و منتظر می‌ماند تو اولین زمان را بگویی.';
     case 'collector':
       return 'نمایندهٔ خریدار جواب قبلی را تکرار نمی‌کند: «هر بار که یک سؤال را دوباره می‌پرسید، ارزش اطلاعات خودتان را پایین می‌آورید. چه چیزی برای معامله دارید؟» گفت‌وگو از پرسش‌وپاسخ به چانه‌زنی تغییر می‌کند.';
     default:
@@ -466,7 +466,7 @@ function resolveOpenCrisis(
           eventId,
           prose: route === 'misdirection'
             ? 'نقشه‌ات جواب می‌دهد: مرد پشت در نشانی را که عمداً در معرض دید گذاشته‌ای می‌بیند و مکثش لو می‌دهد طعمه را باور کرده. صدای قدم‌ها از در دور می‌شود؛ فعلاً آن‌ها به‌دنبال نسخهٔ اشتباه رفته‌اند، اما دروغ تو بعدها صاحب خواهد داشت.'
-            : 'پیش از آن‌که دستگیره پایین برود، آدم‌های داخل کافه مطابق حرکتت موضع می‌گیرند. آن سوی شیشه، سایه دستش را پس می‌کشد. تلاش برای بردن تابلو متوقف شده؛ این بار جهان به نقشهٔ تو واکنش نشان داده، نه به تعداد سرنخ‌هایت.',
+            : 'پیش از آن‌که دستگیره پایین برود، آدم‌های داخل کافه مطابق علامتت موضع می‌گیرند. آن سوی شیشه، سایه دستش را پس می‌کشد، دو قدم عقب می‌رود و به کسی داخل خودروی خاموش اشاره می‌کند. محفظهٔ حمل همچنان بیرون مانده است.',
         };
       }
       return {
@@ -523,7 +523,7 @@ function missCrisis(state: RunState, crisis: SituationCrisisState): { eventId: s
       addUnique(situation.routeMarks, 'pursuit');
       return {
         eventId: 'painting_extraction_missed',
-        prose: 'دو ضربهٔ کوتاه کافی بوده است. وقتی دوباره به دیوار گالری نگاه می‌کنی، قاب خالی آرام تاب می‌خورد و رد چرخ‌های باریک تا کوچه می‌رود. پرونده تمام نشده: تابلو حالا داخل خودرویی در حال حرکت است و معما از «اثبات» به «بازپس‌گیری یا معامله» تغییر کرده است.',
+        prose: 'دو ضربهٔ کوتاه کافی بوده است. وقتی دوباره به دیوار گالری نگاه می‌کنی، قاب خالی آرام تاب می‌خورد و رد چرخ‌های باریک تا کوچه می‌رود. صدای موتور در پیچ پایین خیابان هنوز شنیده می‌شود و یکی از بست‌های قاب روی کف افتاده است.',
       };
     }
     case 'blackout_cleanup':
@@ -599,7 +599,7 @@ function resolveAftermathOpportunity(
       return {
         eventId: strongRecovery ? 'painting_recovered_cleanly' : 'painting_recovered_with_cost',
         prose: strongRecovery
-          ? 'نقشهٔ دوم را روی حرکت ون سوار می‌کنی. راننده به چیزی که برایش آماده کرده بودی واکنش نشان می‌دهد و همان مکث کوتاه برای پس گرفتن محفظه کافی است. تابلو به کافه برمی‌گردد؛ نه چون شکست هرگز رخ نداد، چون از شکست مسیر تازه ساختی.'
+          ? 'نقشهٔ دوم را روی حرکت ون سوار می‌کنی. راننده به چیزی که برایش آماده کرده بودی واکنش نشان می‌دهد و همان مکث کوتاه برای پس گرفتن محفظه کافی است. تابلو به کافه برمی‌گردد و رد لاستیک و تصاویر تقاطع برای شناسایی خودرو باقی می‌ماند.'
           : 'در تقاطع به محفظه می‌رسی و تابلو را پس می‌گیری، اما گوشهٔ قاب در کشمکش ترک می‌خورد و مرد دستکش‌قرمز چهره‌ات را به خاطر می‌سپارد. حقیقت نجات پیدا کرده؛ امنیت و سلامت کامل اثر نه.',
       };
     }
@@ -653,7 +653,137 @@ function resolveAftermathOpportunity(
   return undefined;
 }
 
-function advanceFront(state: RunState): { eventId: string; prose: string } | undefined {
+function isExteriorScene(sceneId: string): boolean {
+  return sceneId === 'scene_entrance' || sceneId === 'scene_hosseini_alley';
+}
+
+function courierReportFragment(state: RunState): string {
+  const flags = state.canonical.canonicalFlags;
+  const bluffed = flags.includes('exiting_man_bluffed');
+  const threatened = flags.includes('exiting_man_threatened');
+  if (bluffed && threatened) return 'عنوان مهمان تازه تأیید نشد؛ از گشت هم اسم برده.';
+  if (threatened) return 'مهمان تازه از گشت اسم برده.';
+  if (bluffed) return 'عنوان مهمان تازه تأیید نشد.';
+  return '';
+}
+
+function renderCustodianDeadline(state: RunState): string {
+  const sceneId = state.canonical.currentScene || state.scene.sceneId;
+  const report = courierReportFragment(state);
+  if (sceneId === 'scene_office') {
+    return `گوشی سالار روی میز می‌لرزد. پیش‌نمایش پیام فقط یک لحظه روشن می‌ماند: «${report ? `${report} ` : ''}دوازده دقیقه. بعدش بندِ بازگشت فعال می‌شود.» سالار صفحه را با کف دست می‌پوشاند، اما دیر شده؛ تو عبارت را دیده‌ای.`;
+  }
+  if (isExteriorScene(sceneId)) {
+    const remembered = report ? ` اولش هم نوشته: «${report}»` : '';
+    return `گوشی خودت با تماس سالار می‌لرزد. وقتی جواب می‌دهی، بی‌مقدمه می‌گوید: «همین الآن برام نوشتن دوازده دقیقه؛ بعدش بندِ بازگشت فعال می‌شه.${remembered}» پشت صدایش کشوی میزی محکم بسته می‌شود.`;
+  }
+  const remembered = report ? `${report} ` : '';
+  return `از سمت اتاق حسابداری صدای لرزش ممتد گوشی و بعد صدای پایین سالار می‌آید: «${remembered}دوازده دقیقه؟ بندِ بازگشت یعنی چی؟» درِ نیمه‌باز دفتر یک لحظه بعد بسته می‌شود.`;
+}
+
+function isCallingSalar(context: SituationTurnContext): boolean {
+  return /(?:زنگ|تماس|تلفن|پیام).*(?:سالار|صالحی)|(?:سالار|صالحی).*(?:زنگ|تماس|تلفن|پیام)/.test(context.rawInput);
+}
+
+function renderCustodianArrival(state: RunState, context: SituationTurnContext): string {
+  const sceneId = state.canonical.currentScene || state.scene.sceneId;
+  const flags = state.canonical.canonicalFlags;
+  const bluffed = flags.includes('exiting_man_bluffed');
+  const threatened = flags.includes('exiting_man_threatened');
+  const recognition = bluffed && threatened
+    ? '«عنوانی که به مأمور ما گفتی هنوز تأیید نشده. اگر واقعاً گشت در راه است، وقت هر دومان کمتر شده.»'
+    : threatened
+      ? '«شنیدم می‌خواهی گشت را وارد ماجرا کنی. پیش از آن‌که برسند، چیزی برای عرضه داری؟»'
+      : bluffed
+        ? '«مأمور ما کارت بازرسی ندید. شاید مدرک دیگری برای ادعایت داشته باشی.»'
+        : '«اگر مدرکی دارید، معامله می‌کنیم؛ اگر ندارید، مالکیت از قبل تعیین شده.»';
+  const secondCall = isCallingSalar(context);
+  if (sceneId === 'scene_office') {
+    return `پشت پنجرهٔ دفتر، خودروی خاموش کنار کوچه چند متر جلو می‌آید. ${secondCall ? 'هنوز جملهٔ سالار تمام نشده که تماس دوم روی خط می‌افتد؛ او آن را روی بلندگو می‌گذارد.' : 'سالار تماس ورودی را روی بلندگو می‌گذارد.'} صدایی شمرده اتاق را پر می‌کند: ${recognition} سالار به تو نگاه می‌کند، اما پاسخ را از دهان تو بیرون نمی‌کشد.`;
+  }
+  if (isExteriorScene(sceneId)) {
+    return `خودروی خاموشی که پایین کوچه بود چند متر جلو می‌آید و هم‌سطح تو می‌ایستد. شیشه پایین نمی‌رود؛ در عوض گوشی‌ات از شماره‌ای ناشناس زنگ می‌خورد: ${recognition}`;
+  }
+  return `پشت شیشهٔ باران‌خورده، خودروی خاموش کنار کوچه چند متر جلو می‌آید. ${secondCall ? 'هنوز صدای سالار از گوشی تو می‌آید که تماس دیگری روی خط می‌افتد؛ چند ثانیه بعد خودش با همان تماس روی بلندگو تا آستانهٔ راهرو می‌آید.' : 'سالار با گوشیِ روی بلندگو تا آستانهٔ راهرو می‌آید.'} صدایی شمرده در سالن می‌پیچد: ${recognition}`;
+}
+
+function resolveOpeningEncounterEcho(
+  state: RunState,
+  context: SituationTurnContext,
+): { eventId: string; prose: string } | undefined {
+  if (
+    context.sceneBefore !== 'scene_entrance' ||
+    context.sceneAfter !== 'scene_table5' ||
+    !context.actionSucceeded
+  ) {
+    return undefined;
+  }
+
+  const situation = state.situation!;
+  if (situation.eventHistory.some(event => event.eventId.startsWith('opening_courier_'))) {
+    return undefined;
+  }
+
+  const flags = state.canonical.canonicalFlags;
+  const attacked = flags.includes('attacked_exiting_man');
+  const threatened = flags.includes('exiting_man_threatened');
+  const bluffed = flags.includes('exiting_man_bluffed');
+  const accused = flags.includes('exiting_man_accused');
+  if (!attacked && !threatened && !bluffed && !accused) return undefined;
+
+  const courier = situation.npcIntentions.red_glove_courier;
+  courier.stage += attacked ? 2 : 1;
+  courier.lastActedPulse = situation.pulse;
+
+  if (attacked) {
+    situation.fronts.redactor_cleanup.progress = clampFront(
+      situation.fronts.redactor_cleanup.progress + 2,
+    );
+    situation.fronts.custodian_extraction.progress = clampFront(
+      situation.fronts.custodian_extraction.progress + 1,
+    );
+    return {
+      eventId: 'opening_courier_reports_assault',
+      prose: 'پیش از آن‌که از آستانه دور شوی، از پشت شیشه می‌بینی مرد گوشی‌اش را بالا آورده و از پلاک کافه و صورت تو دو تصویر پیاپی می‌گیرد. بعد بی‌آن‌که بدود در پیچ کوچه ناپدید می‌شود؛ رد درگیری را با خودش برده است.',
+    };
+  }
+
+  if (threatened && bluffed) {
+    situation.fronts.redactor_cleanup.progress = clampFront(
+      situation.fronts.redactor_cleanup.progress + 1,
+    );
+    situation.fronts.custodian_extraction.progress = clampFront(
+      situation.fronts.custodian_extraction.progress + 1,
+    );
+    return {
+      eventId: 'opening_courier_reports_false_authority_and_threat',
+      prose: 'در لحظه‌ای که از آستانه می‌گذری، صفحهٔ گوشی مرد پشت شیشه روشن است. دو واژه روی پیام نیمه‌نوشته‌اش دیده می‌شود: «بازرس» و «گشت». علامت ارسال را می‌زند و بعد مسیرش را عوض می‌کند؛ دیگر به انتهای کوچه نمی‌رود، وارد گذر باریک کنار کافه می‌شود.',
+    };
+  }
+
+  if (threatened || accused) {
+    situation.fronts.redactor_cleanup.progress = clampFront(
+      situation.fronts.redactor_cleanup.progress + 1,
+    );
+    return {
+      eventId: 'opening_courier_reports_threat',
+      prose: 'پشت شیشه، مرد برای آخرین بار برمی‌گردد و گوشی را کنار گوشش می‌برد. فقط یک جمله پیش از دورشدنش از لای در می‌شنوی: «مهمان تازه، پلیس را وسط کشید.»',
+    };
+  }
+
+  situation.fronts.custodian_extraction.progress = clampFront(
+    situation.fronts.custodian_extraction.progress + 1,
+  );
+  return {
+    eventId: 'opening_courier_reports_false_authority',
+    prose: 'پیش از آن‌که از آستانه دور شوی، مرد را می‌بینی که کنار چراغ خاموش خودرو مکث کرده و پیامی کوتاه می‌فرستد. آخرین نگاهش به جیب کت توست؛ همان‌جایی که کارت بازرسی باید می‌بود و نبود.',
+  };
+}
+
+function advanceFront(
+  state: RunState,
+  context: SituationTurnContext,
+): { eventId: string; prose: string } | undefined {
   const situation = state.situation!;
   if (situation.pulse < 3 || (situation.pulse - 3) % 2 !== 0) return undefined;
 
@@ -699,7 +829,7 @@ function advanceFront(state: RunState): { eventId: string; prose: string } | und
       case 'staff_walkout':
         return {
           eventId: 'crisis_staff_walkout_opened',
-          prose: 'حانیه تبلت را داخل کیف می‌گذارد و پنتی را صدا می‌زند. مانی بی‌آن‌که به تو نگاه کند راه خروج را باز می‌کند: «تا وقتی سالار نصف حقیقت رو می‌گه و از ما انتظار اعتماد داره، کسی اینجا امن نیست.» این یک بحث تزئینی نیست؛ جمع در آستانهٔ شکستن است.',
+          prose: 'حانیه تبلت را داخل کیف می‌گذارد و پنتی را صدا می‌زند. مانی بی‌آن‌که به تو نگاه کند راه خروج را باز می‌کند: «تا وقتی سالار نصف حقیقت رو می‌گه و از ما انتظار اعتماد داره، کسی اینجا امن نیست.» یاشین پیش‌بندش را باز می‌کند، اما هنوز آن را روی پیشخوان نگذاشته است.',
         };
     }
   }
@@ -717,7 +847,7 @@ function advanceFront(state: RunState): { eventId: string; prose: string } | und
       addCanonicalFlag(state, 'collector_deadline_received');
       return {
         eventId: 'custodian_deadline_call',
-        prose: 'گوشی سالار روی میز می‌لرزد. او تماس را رد می‌کند، اما پیش‌نمایش پیام یک لحظه دیده می‌شود: «دوازده دقیقه. بعدش بندِ بازگشت فعال می‌شود.» سالار فوراً صفحه را برمی‌گرداند؛ بیرون از کافه کسی منتظر حل معما نیست.',
+        prose: renderCustodianDeadline(state),
       };
     }
     if (front.progress >= 4 && !arrivalSeen) {
@@ -727,7 +857,7 @@ function advanceFront(state: RunState): { eventId: string; prose: string } | und
       collector.location = 'nearby';
       return {
         eventId: 'custodian_arrival_signal',
-        prose: 'خودروی خاموش کنار کوچه چند متر جلو می‌آید. تماس این بار روی بلندگوی گوشی سالار می‌افتد و صدایی شمرده می‌گوید: «اگر مدرکی دارید، معامله می‌کنیم؛ اگر ندارید، مالکیت از قبل تعیین شده.» راه گفت‌وگو باز شده، اما دیگر پشت یک درِ قفل‌شدهٔ چهارسرنخی نیست.',
+        prose: renderCustodianArrival(state, context),
       };
     }
     return undefined;
@@ -742,7 +872,9 @@ function advanceFront(state: RunState): { eventId: string; prose: string } | und
       courier.lastActedPulse = situation.pulse;
       return {
         eventId: 'redactor_remote_probe',
-        prose: 'تصویر یکی از دوربین‌ها برای نیم‌ثانیه برفکی می‌شود. هم‌زمان تبلت حانیه پیام «همگام‌سازی ناموفق» می‌دهد، با اینکه وای‌فای قطع نشده. کسی در حال آزمودن این است که کدام نسخه از امشب هنوز قابل پاک کردن است.',
+        prose: state.canonical.currentScene === 'scene_cctv'
+          ? 'روی نمایشگرها، تصویر ورودی برای نیم‌ثانیه برفکی می‌شود و شمارندهٔ ضبط یک فریم عقب می‌پرد. چراغ شبکه همچنان سبز است، اما دستگاه دوباره برای اعتبارنامهٔ نگهداری درخواست می‌فرستد.'
+          : 'تبلت حانیه پیام «همگام‌سازی ناموفق» می‌دهد، با اینکه علامت وای‌فای کامل است. وقتی دوباره صفحه را باز می‌کند، پیش‌نمایش یکی از دوربین‌ها خاکستری مانده و زمان گوشهٔ تصویر یک ثانیه عقب‌تر است.',
       };
     }
     if (front.progress >= 4 && !doorSeen) {
@@ -770,7 +902,7 @@ function advanceFront(state: RunState): { eventId: string; prose: string } | und
     }
     return {
       eventId: 'cafe_first_fracture',
-      prose: 'صدای بحث کوتاه یاشین و مانی از پشت بار بالا می‌رود. یاشین می‌گوید ساعت‌ها باید همین حالا ثبت شوند؛ مانی جواب می‌دهد اول باید فهمید چه کسی قرار است تاوانشان را بدهد. آن‌ها سرنخ تولید نمی‌کنند—دارند دربارهٔ وفاداری تصمیم می‌گیرند.',
+      prose: 'صدای بحث کوتاه یاشین و مانی از پشت بار بالا می‌رود. یاشین می‌گوید ساعت‌ها باید همین حالا ثبت شوند؛ مانی جواب می‌دهد اول باید فهمید چه کسی قرار است تاوانشان را بدهد. وقتی نام سالار می‌آید، هر دو ساکت می‌شوند و به درِ حسابداری نگاه می‌کنند.',
     };
   }
   if (front.progress >= 4 && !salarSeen) {
@@ -787,13 +919,13 @@ function advanceFront(state: RunState): { eventId: string; prose: string } | und
 function leverageProse(leverageId: string): string | undefined {
   switch (leverageId) {
     case 'credible_provenance_decoy':
-      return 'از چینش برچسب‌ها و زبان بازار می‌فهمی می‌توان یک شجره‌نامهٔ بدلِ باورپذیر ساخت—نه برای گرفتن سرنخ مجانی، برای واداشتن خریدار به حرکت روی طعمه‌ای که تو انتخاب می‌کنی.';
+      return 'چینش برچسب‌ها و زبان بازار الگویی به دستت می‌دهد که می‌تواند یک شجره‌نامهٔ بدلِ باورپذیر بسازد. اگر آن را روی کاغذ بیاوری، خریدار ناچار می‌شود دربارهٔ یک منشأ جعلی موضع بگیرد.';
     case 'trace_cleanup_solvent':
-      return 'امضای بویایی حلال در ذهنت کامل می‌شود. از این به بعد اگر عامل پاک‌سازی حرکت کند، می‌توانی مسیرش را از آلودگی متقاطع دنبال کنی؛ این یک ابزار تعقیب است، نه پاسخ معما.';
+      return 'امضای بویایی حلال در ذهنت کامل می‌شود. اگر همان ماده در جای دیگری باز شود، رد بویش روی پارچه، چوب یا دستکش چند دقیقه باقی می‌ماند.';
     case 'independent_log_mirror':
       return 'نسخهٔ زمان‌مهرشده بیرون از سامانهٔ کافه ثبت می‌شود. حالا پاک کردن دستگاه محلی حقیقت را از بین نمی‌برد و می‌توانی از این نسخه به‌عنوان اهرم یا طعمه استفاده کنی.';
     case 'turn_witness_into_ally':
-      return 'واکنش طرف مقابل فقط یک پاسخ نیست؛ نشانه‌ای است که می‌توانی با آن یک شاهد منفعل را وارد نقشه کنی. اگر اعتماد را خرج کنی، او می‌تواند خارج از میدان دید تو عمل کند.';
+      return 'مکث و جهت نگاه طرف مقابل به تو می‌گوید هنوز همهٔ راه‌ها بسته نشده. اگر بخشی از نقشه‌ات را با او قسمت کنی، ممکن است حاضر شود کاری را بیرون از میدان دیدت انجام دهد.';
     default:
       return undefined;
   }
@@ -816,6 +948,7 @@ export function advanceEpisodeSituation(
   }
   const situation = state.situation;
   situation.pulse += 1;
+  const openingEncounterEcho = resolveOpeningEncounterEcho(state, context);
 
   const route = classifyRoute(context);
   if (route && addUnique(situation.routeMarks, route)) outcome.routesAdded.push(route);
@@ -841,8 +974,13 @@ export function advanceEpisodeSituation(
     if (situation.actionHistory.length > 24) situation.actionHistory.shift();
   }
 
-  const crisisResolution = context.actionSucceeded ? resolveOpenCrisis(state, route) : undefined;
-  if (crisisResolution) {
+  const crisisResolution = !openingEncounterEcho && context.actionSucceeded
+    ? resolveOpenCrisis(state, route)
+    : undefined;
+  if (openingEncounterEcho) {
+    outcome.eventIds.push(openingEncounterEcho.eventId);
+    outcome.narrativeAppend = openingEncounterEcho.prose;
+  } else if (crisisResolution) {
     outcome.eventIds.push(crisisResolution.eventId);
     outcome.narrativeAppend = crisisResolution.prose;
   } else {
@@ -863,7 +1001,7 @@ export function advanceEpisodeSituation(
           outcome.eventIds.push(commitment.eventId);
           outcome.narrativeAppend = commitment.prose;
         } else {
-          const frontBeat = advanceFront(state);
+          const frontBeat = advanceFront(state, context);
           if (frontBeat) {
             outcome.eventIds.push(frontBeat.eventId);
             outcome.narrativeAppend = frontBeat.prose;

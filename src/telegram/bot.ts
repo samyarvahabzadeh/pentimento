@@ -143,17 +143,18 @@ bot.command('restart', async (ctx) => {
 bot.command('debug_version', async (ctx) => {
   const info = [
     `📦 *Pentimento Engine Build Manifest*`,
-    `• *Build ID:* \`pentimento-conversational-freedom-20260825\``,
-    `• *Story Schema Version:* \`v2.8.0-conversational-freedom\``,
+    `• *Build ID:* \`pentimento-diegetic-consequence-20260825\``,
+    `• *Story Schema Version:* \`v2.9.0-diegetic-consequence\``,
     `• *Runtime SHA256:* \`${buildAttestation.fingerprint}\``,
     `• *Attested Files:* \`${buildAttestation.fileCount}\``,
     `• *Generic Dispatch:* \`SCENE_GROUNDED\``,
-    `• *Conversational Contract:* \`FREE IDENTITY / ADDRESSEE AWARE / NATURAL SCENE QUESTIONS\``,
+    `• *Conversational Contract:* \`DIEGETIC / ADDRESSEE AWARE / EMBODIED SENSES\``,
+    `• *Spatial Continuity:* \`SCENE-BOUND NPC / DOOR STATE / CALL LOCATION\``,
     `• *Evidence Gating:* \`LAYERED / NO REWARD FARMING\``,
     `• *NPC Knowledge Cards:* \`ACTIVE\``,
     `• *Situation Fronts:* \`3 ACTIVE / FAIL-FORWARD\``,
     `• *Clue Structure:* \`CONSTELLATIONS / NON-LINEAR\``,
-    `• *Persistent Commitments:* \`ACTIVE\``,
+    `• *Persistent Commitments:* \`COURIER REPORT / FRONT ECHO / CRISIS\``,
     `• *Agency Validator:* \`ACTIVE\``,
     `• *Canon Injection Guard:* \`ACTIVE\``,
   ].join('\n');
@@ -392,4 +393,3 @@ server.listen(PORT, async () => {
     }
   }
 });
-

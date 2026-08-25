@@ -138,7 +138,7 @@ export function solveSemanticAction(
           };
         }
         return {
-          narrative: 'مرد پالتوپوش نیم‌قدم عقب می‌رود، طوری که نور کافه فقط لبهٔ دستکش را بگیرد: «اسم من چیزی را عوض نمی‌کند. اگر می‌خواهی بدانی چرا اینجا بودم، از کسی بپرس که حاضر شد چیزی را که مالش نبود پس بدهد.» بعد نگاه کوتاهی به رسید خیس می‌اندازد. او جواب کامل نداده؛ عمداً انتخاب بعدی را بین تعقیب و حفظ صحنه گذاشته است.',
+          narrative: 'مرد پالتوپوش نیم‌قدم عقب می‌رود، طوری که نور کافه فقط لبهٔ دستکش را بگیرد: «اسم من چیزی را عوض نمی‌کند. اگر می‌خواهی بدانی چرا اینجا بودم، از کسی بپرس که حاضر شد چیزی را که مالش نبود پس بدهد.» نگاه کوتاهی به رسید خیس می‌اندازد و شانه‌اش را به سمت پیچ کوچه می‌چرخاند؛ فاصله‌اش با تو بیشتر می‌شود.',
           acceptedEffects: [],
           isSuccess: true,
         };
@@ -147,10 +147,19 @@ export function solveSemanticAction(
         const risk = tickClock(state.clocks, 'personalRisk', 1, 'رویارویی مستقیم با پیک دستکش قرمز');
         state.clocks = risk.updatedClocks;
         effects.push({ type: 'modify_clock', clock: 'personalRisk', delta: 1, reason: 'رویارویی مستقیم با پیک دستکش قرمز' });
+        const encounterFlag = p === 'deceive'
+          ? 'exiting_man_bluffed'
+          : p === 'threaten'
+            ? 'exiting_man_threatened'
+            : 'exiting_man_accused';
+        if (!state.canonical.canonicalFlags.includes(encounterFlag)) {
+          state.canonical.canonicalFlags.push(encounterFlag);
+          effects.push({ type: 'set_flag', flag: encounterFlag, value: true });
+        }
         return {
           narrative: p === 'deceive'
-            ? 'مرد نگاهش را از صورتت به دست‌ها و جیب کتت می‌برد، دنبال کارت یا نشانی که ادعایت را پشتیبانی کند. «بازرس بدون معرفی‌نامه، فقط یک مشتریه که دیر رسیده.» بلوفت او را نگه نمی‌دارد؛ اما حالا می‌داند حاضری هویت جعلی وارد بازی کنی.'
-            : 'مرد نه تهدیدت را تأیید می‌کند و نه عقب می‌نشیند. وزن بدنش را روی پای عقب می‌اندازد و مسیر فرار را باز نگه می‌دارد: «تهدیدی که پشتش مدرک نیست فقط زمان صاحبش را می‌سوزاند.» حالا می‌داند تو ممکن است وارد بازی شبکه شوی.',
+            ? 'مرد نگاهش را از صورتت به دست‌ها و جیب کتت می‌برد، دنبال کارت یا نشانی که ادعایت را پشتیبانی کند. «بازرس بدون معرفی‌نامه، فقط یک مشتریه که دیر رسیده.» گوشی داخل جیب پالتویش یک‌بار می‌لرزد؛ بی‌آن‌که صفحه را بیرون بیاورد، انگشت شستش را روی دکمه‌ای نگه می‌دارد.'
+            : 'مرد نه تهدیدت را تأیید می‌کند و نه عقب می‌نشیند. وزن بدنش را روی پای عقب می‌اندازد و مسیر فرار را باز نگه می‌دارد: «تهدیدی که پشتش مدرک نیست فقط زمان صاحبش را می‌سوزاند.» پیش از برگشتن به سمت کوچه، نگاهش یک لحظه روی صورتت ثابت می‌ماند.',
           acceptedEffects: effects,
           isSuccess: true,
         };
@@ -172,7 +181,7 @@ export function solveSemanticAction(
       return {
         narrative: matchedNpc === 'exiting_man'
           ? 'مشتت هنوز کامل باز نشده که مرد مچت را منحرف می‌کند و با یک چرخش کوتاه از خط حمله بیرون می‌رود. ضربه به هدف نمی‌خورد؛ او فاصله می‌گیرد و شمارهٔ پلاکی را زیر لب تکرار می‌کند، انگار هویتت حالا بخشی از گزارش اوست.'
-          : `${INITIAL_NPC_GOAL_PROFILES[matchedNpc]?.nameFa ?? 'طرف مقابل'} از مسیر ضربه کنار می‌رود و صدای برخورد صندلی‌ها سالن را پر می‌کند. مانی میان شما می‌ایستد و یاشین دستش را سمت تلفن می‌برد. حمله بی‌پیامد یا پیروزی تضمینی نبود؛ صحنه اکنون در آستانهٔ مداخلهٔ پلیس است.`,
+          : `${INITIAL_NPC_GOAL_PROFILES[matchedNpc]?.nameFa ?? 'طرف مقابل'} از مسیر ضربه کنار می‌رود و صدای برخورد صندلی‌ها سالن را پر می‌کند. مانی میان شما می‌ایستد و یاشین دستش را سمت تلفن می‌برد؛ انگشتش روی شماره‌گیر آماده می‌ماند.`,
         acceptedEffects: effects,
         isSuccess: true,
       };
@@ -318,7 +327,7 @@ export function solveSemanticAction(
     }
 
     return {
-      narrative: `دستت را با احتیاط روی ${targetObj.nameFa} می‌گذاری. تماس، وضعیت فیزیکی آن را روشن‌تر می‌کند اما به‌تنهایی راز یا مدرک تازه‌ای نمی‌سازد.`,
+      narrative: `دستت را با احتیاط روی ${targetObj.nameFa} می‌گذاری. دما، زبری سطح و مقدار حرکتی که زیر فشار انگشت دارد حالا برایت روشن است.`,
       acceptedEffects: effects,
       isSuccess: true,
     };
@@ -328,7 +337,7 @@ export function solveSemanticAction(
     state.environmentState.playerPosture = 'seated_at_table5';
     effects.push({ type: 'modify_environment', key: 'playerPosture', value: 'seated_at_table5' });
     return {
-      narrative: 'صندلی چوبی را کمی عقب می‌کشی و کنار میز پنج می‌نشینی. از این زاویه لبهٔ فنجان، دست‌های حانیه و واکنش پنتی هم‌زمان در میدان دیدت‌اند؛ نشستن چیزی را خودکار کشف نمی‌کند، اما جایگاهت در گفت‌وگو عوض می‌شود.',
+      narrative: 'صندلی چوبی را کمی عقب می‌کشی و کنار میز پنج می‌نشینی. حالا لبهٔ فنجان، دست‌های حانیه و واکنش پنتی هم‌زمان در میدان دیدت‌اند؛ در عوض راه خروج پشت شانه‌ات می‌افتد و حانیه برای حرف‌زدن ناچار نیست صدایش را بلند کند.',
       acceptedEffects: effects,
       isSuccess: true,
     };
@@ -518,7 +527,7 @@ export function solveSemanticAction(
     effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
     const destination = placement === 'table_1' ? 'روی میز شمارهٔ ۱' : 'در جای تازه‌ای در همین صحنه';
     return {
-      narrative: `${targetObj.nameFa} را برمی‌داری و ${destination} می‌گذاری. جای قبلی‌اش خالی می‌ماند و این تغییر چیدمان برای آدم‌های حاضر قابل‌دیدن است؛ خود جابه‌جایی سرنخ تازه‌ای تولید نمی‌کند.`,
+      narrative: `${targetObj.nameFa} را برمی‌داری و ${destination} می‌گذاری. جای قبلی‌اش خالی می‌ماند و آدم‌های حاضر مسیر دستت را دنبال می‌کنند.`,
       acceptedEffects: effects,
       isSuccess: true,
     };
@@ -575,7 +584,7 @@ export function solveSemanticAction(
     effects.push({ type: 'modify_environment', key: 'modifiedObjects', value: state.environmentState.modifiedObjects });
     const destination = placement === 'table_1' ? 'روی میز شمارهٔ ۱' : 'در جای تازه‌ای در همین صحنه';
     return {
-      narrative: `${targetObj.nameFa} را برمی‌داری و ${destination} می‌گذاری. جای قبلی‌اش خالی می‌ماند و این تغییر چیدمان برای آدم‌های حاضر قابل‌دیدن است؛ خود جابه‌جایی سرنخ تازه‌ای تولید نمی‌کند.`,
+      narrative: `${targetObj.nameFa} را برمی‌داری و ${destination} می‌گذاری. جای قبلی‌اش خالی می‌ماند و آدم‌های حاضر مسیر دستت را دنبال می‌کنند.`,
       acceptedEffects: effects,
       isSuccess: true,
     };
@@ -835,7 +844,7 @@ export function solveSemanticAction(
       return {
         narrative: targetObj.id === 'cat_penti'
           ? 'پیش از آن‌که دستت به پنتی برسد، حانیه او را بغل می‌کند و مانی بازویت را عقب می‌کشد. آسیبی به گربه نمی‌رسد، اما امنیت جمع فرو می‌ریزد و یاشین شمارهٔ پلیس را آماده می‌کند.'
-          : 'هدف زنده از مسیر ضربه کنار می‌رود و آدم‌های حاضر میان شما فاصله می‌اندازند. قصد خشونت ثبت شده، اما نتیجهٔ بدنی دلخواهت خودکار اتفاق نمی‌افتد.',
+          : 'هدف زنده از مسیر ضربه کنار می‌رود و آدم‌های حاضر میان شما فاصله می‌اندازند. یکی از صندلی‌ها روی کف کشیده می‌شود و چند دست آمادهٔ مهارکردنت بالا می‌آید.',
         acceptedEffects: effects,
         isSuccess: true,
       };
@@ -877,7 +886,7 @@ export function solveSemanticAction(
     state.environmentState.recordingActive = true;
     effects.push({ type: 'modify_environment', key: 'recordingActive', value: true });
     return {
-      narrative: 'ضبط صدای گوشی را فعال می‌کنی. از این لحظه آنچه واقعاً به میکروفن برسد ذخیره می‌شود؛ روشن‌کردن ضبط به‌تنهایی صدای پنهان، هویت گوینده یا سرنخ تازه‌ای کشف نمی‌کند و فایل باید بعداً شنیده یا تحلیل شود.',
+      narrative: 'ضبط صدای گوشی را فعال می‌کنی. موج سبز میکروفن با صدای باران، دستگاه قهوه و حرف‌های نزدیک تکان می‌خورد؛ صداهای دورتر در نویز سالن گم می‌شوند و فایل برای شنیدن دوباره باقی می‌ماند.',
       acceptedEffects: effects,
       isSuccess: true,
     };
@@ -952,7 +961,7 @@ export function solveSemanticAction(
       value: state.environmentState.customDistractions,
     });
     return {
-      narrative: 'حواس افراد حاضر را با روشی که انتخاب کرده‌ای از نقطهٔ اصلی منحرف می‌کنی. چند نگاه و بدن به سمت طعمه می‌چرخد؛ یک پنجرهٔ کوتاه برای حرکت بعدی ساخته شده، نه یک موفقیت خودکار.',
+      narrative: 'حواس افراد حاضر را با روشی که انتخاب کرده‌ای از نقطهٔ اصلی منحرف می‌کنی. چند نگاه و بدن به سمت طعمه می‌چرخد؛ هنوز کسی صحنه را ترک نکرده و این مکث کوتاه می‌تواند هر لحظه تمام شود.',
       acceptedEffects: effects,
       isSuccess: true,
     };
@@ -1030,7 +1039,7 @@ export function solveSemanticAction(
     return {
       narrative: canObserveVisitor
         ? 'چند ثانیه دخالت نمی‌کنی. مرد پیش از دور شدن یک بار وزن جیب داخلی پالتویش را می‌سنجد و نگاهش نه به فنجان، که به مسیر بازگشت تا کافه می‌افتد. مکث او مشاهده است، نه اعتراف.'
-        : 'دقایقی در سکوت می‌ایستی و ریتم طبیعی محیط را تماشا می‌کنی. آدم‌ها کار خودشان را ادامه می‌دهند و زمانِ بی‌عمل هم به جبهه‌های بیرون فرصت حرکت می‌دهد؛ سکوت به‌تنهایی سرنخ تازه تولید نمی‌کند.',
+        : 'دقایقی در سکوت می‌ایستی و ریتم طبیعی محیط را تماشا می‌کنی. یاشین فنجان‌ها را جابه‌جا می‌کند، حانیه چند بار ساعت را نگاه می‌کند و بیرون از شیشه نور خودرویی یک‌بار روی دیوار می‌لغزد.',
       acceptedEffects: effects,
       isSuccess: true,
     };

@@ -22,6 +22,13 @@ export function decomposeMultiActionInput(playerInput: string, state: RunState):
     return [extractSemanticAction(norm, state)];
   }
 
+  // Taking or pushing the handle while entering is one continuous movement,
+  // not two turns. Splitting it used to make the first half fail before the
+  // player crossed the threshold.
+  if (/دستگیره.*\sو\s.*(?:وارد|(?:می\s*?روم|می\s*?رم|میرم|میام|می‌آیم)\s*(?:تو|داخل))/.test(norm)) {
+    return [extractSemanticAction(norm, state)];
+  }
+
   // Split on strong Persian conjunctions and delimiters
   let rawClauses = norm
     .split(/،|\s*و\s*سپس\s*|\s*و\s*بعد\s*|\s*سپس\s*|\s+بعد(?:ش)?\s+(?!از\s)|\s*قبل\s*از\s*اینکه\s*|\s*در\s*حالی\s*که\s*|;|؛/)
@@ -122,7 +129,7 @@ export function executeMultiActionSequence(
     const act = subActions[i];
     const res = solveSemanticAction(act, state);
     solverResults.push(res);
-    narrativeParts.push(`[مرحلهٔ ${i + 1}]: ${res.narrative}`);
+    narrativeParts.push(res.narrative);
   }
 
   return {
