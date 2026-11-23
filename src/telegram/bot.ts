@@ -1,4 +1,4 @@
-import { Bot, webhookCallback, InputFile } from 'grammy';
+import { Bot, webhookCallback, InputFile, Keyboard } from 'grammy';
 import * as dotenv from 'dotenv';
 import * as http from 'node:http';
 dotenv.config();
@@ -70,6 +70,49 @@ const userDebugModes = new Map<number, boolean>();
 // Per-user turn lock
 const userTurnLocks = new Map<string, Promise<void>>();
 
+export const ROLE_KEYBOARD = new Keyboard()
+  .text('🔍 کارآگاه و دوست قدیمی سالار')
+  .text('🎨 کارشناس اصالت آثار هنری')
+  .row()
+  .text('☕ کیمیاگر قهوه و شیمی')
+  .text('💻 تحلیلگر داده و سیستم‌ها')
+  .resized()
+  .persistent();
+
+export const GAMEPLAY_KEYBOARD = new Keyboard()
+  .text('💡 الان چیکار کنم؟')
+  .text('🗺️ نقشه کافه')
+  .row()
+  .text('🎒 وسایل من')
+  .text('📂 مدارک و شواهد')
+  .resized()
+  .persistent();
+
+export const ENDING_KEYBOARD = new Keyboard()
+  .text('☕ تصمیم نهایی: نجات کافه و سالار')
+  .text('🏛️ تصمیم نهایی: افشای حقیقت تاریخی')
+  .row()
+  .text('💼 تصمیم نهایی: توافق با خریدار')
+  .text('📰 تصمیم نهایی: افشای عمومی ماجرا')
+  .resized()
+  .persistent();
+
+export function getReplyMarkupForState(state: RunState): any {
+  if (state.canonical.endingId) {
+    return new Keyboard()
+      .text('/restart')
+      .text('/recap')
+      .resized();
+  }
+  if (state.canonical.currentNode === 'NODE_00') {
+    return ROLE_KEYBOARD;
+  }
+  if (state.canonical.currentNode === 'NODE_18') {
+    return ENDING_KEYBOARD;
+  }
+  return GAMEPLAY_KEYBOARD;
+}
+
 function createNewState(): RunState {
   return createInitialRunState();
 }
@@ -131,7 +174,7 @@ async function beginFreshRun(ctx: any, userId: string, restarted = false): Promi
   const state = createNewState();
   saveRun(state.canonical.runId, userId, state);
   await sendCover(ctx, restarted ? '🔄 ماجرا بازنشانی شد.' : undefined);
-  await safeReply(ctx, buildIntroMessage(), { parse_mode: 'Markdown' });
+  await safeReply(ctx, buildIntroMessage(), { parse_mode: 'Markdown', reply_markup: ROLE_KEYBOARD });
 }
 
 async function resumeOrBeginRun(ctx: any, userId: string): Promise<void> {
@@ -141,10 +184,12 @@ async function resumeOrBeginRun(ctx: any, userId: string): Promise<void> {
     return;
   }
   if (record.state.canonical.currentNode === 'NODE_00') {
-    await safeReply(ctx, buildIntroMessage(), { parse_mode: 'Markdown' });
+    await safeReply(ctx, buildIntroMessage(), { parse_mode: 'Markdown', reply_markup: ROLE_KEYBOARD });
     return;
   }
-  await ctx.reply(`اجرای ذخیره‌شده‌ات ادامه دارد.\n\n${buildRecapPanel(record.state)}`);
+  await ctx.reply(`اجرای ذخیره‌شده‌ات ادامه دارد.\n\n${buildRecapPanel(record.state)}`, {
+    reply_markup: getReplyMarkupForState(record.state),
+  });
 }
 
 // Global logger middleware
@@ -477,7 +522,7 @@ bot.on('message:text', async (ctx) => {
 
         await safeReply(ctx, reply, {
           parse_mode: userDebugModes.get(userId) ? 'Markdown' : undefined,
-          reply_markup: isRoleSelection ? { remove_keyboard: true } : undefined,
+          reply_markup: getReplyMarkupForState(result.stateAfter),
         });
 
       } catch (err: any) {
