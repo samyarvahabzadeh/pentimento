@@ -300,21 +300,39 @@ export function renderSceneOverview(state: RunState, intent: ConversationalInten
 
   if (intent === 'map_request') {
     const loc = LOCATION_REGISTRY[sceneId]?.nameFa ?? 'موقعیت فعلی';
+    const isStorage = sceneId === 'scene_storage';
+    const isGallery = sceneId === 'scene_gallery' || sceneId === 'scene_painting_back';
+    const isArchive = sceneId === 'scene_archive_collector' || sceneId === 'scene_collector_meeting' || sceneId === 'scene_archive' || sceneId === 'scene_underpainting';
+    const isCounter = sceneId === 'scene_counter';
+    const isTable5 = sceneId === 'scene_table5' || sceneId === 'scene_table_5';
+    const isOffice = sceneId === 'scene_office';
+    const isEntrance = sceneId === 'scene_entrance' || sceneId === 'scene_hosseini_alley';
+    const isCctv = sceneId === 'scene_cctv';
+
+    const bStorage = isStorage ? ' 📍 [انبار کارتن] ' : '   انبار کارتن   ';
+    const bGallery = isGallery ? ' 📍 [دیوار گالری] ' : ' دیوار گالری (تابلو) ';
+    const bArchive = isArchive ? ' 📍 [میز آرشیو]  ' : '   آرشیو و خریدار ';
+    const bCounter = isCounter ? ' 📍 [پیشخوان]   ' : '   پیشخوان / بار  ';
+    const bTable5 = isTable5 ? ' 📍 [سالن / میز ۵] ' : '   سالن اصلی (میز ۵)   ';
+    const bOffice = isOffice ? ' 📍 [اتاق سالار] ' : '   اتاق سالار     ';
+    const bEntrance = isEntrance ? '📍 [ورودی / کوچه حسینی]' : '[ورودی / کوچه حسینی]';
+    const bCctv = isCctv ? '📍 [دوربین‌ها / CCTV]' : '[دوربین‌ها / CCTV]';
+
     return [
       '🗺️ نقشهٔ راهنمای کافه پنتیمنتو (پلاک ۵۵):',
       '',
-      '┌───────────────┬──────────────────────┬────────────────┐',
-      '│  انبار کارتن  │ دیوار گالری (تابلو)  │  آرشیو و خریدار│',
-      '├───────────────┼──────────────────────┼────────────────┤',
-      '│  پیشخوان / بار│  سالن اصلی (میز ۵)   │  اتاق سالار    │',
-      '└───────────────┴──────────┬───────────┴───────┬────────┘',
-      '                           │                   │',
-      '                  [ورودی / کوچه حسینی]    [دوربین‌ها / CCTV]',
+      `📍 موقعیت کنونی شما: ${loc}`,
       '',
-      `📍 موقعیت فعلی تو: ${loc}`,
+      '┌─────────────────┬──────────────────────┬─────────────────┐',
+      `│${bStorage}│${bGallery}│${bArchive}│`,
+      '├─────────────────┼──────────────────────┼─────────────────┤',
+      `│${bCounter}│${bTable5}│${bOffice}│`,
+      '└─────────────────┴──────────┬───────────┴────────┬────────┘',
+      '                             │                    │',
+      `                  ${bEntrance}     ${bCctv}`,
       '',
-      '💡 برای دیدن نقشهٔ تصویری رنگی و باکیفیت، دستور /map را بزن.',
-      '🚶‍♂️ برای رفتن به هر بخش بنویس: «میرم [نام بخش]»',
+      '💡 برای دیدن نقشهٔ تصویری رنگی با موقعیت دقیق، دکمهٔ «🗺️ نقشه کافه» یا دستور /map را بزن.',
+      '🚶‍♂️ برای رفتن به هر بخش بنویس: «میرم [نام بخش]» (مثلاً: «میرم پیشخوان» یا «میرم پیش سالار»)',
     ].join('\n');
   }
 

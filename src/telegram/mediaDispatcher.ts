@@ -37,7 +37,7 @@ export const MEDIA_TRIGGERS: MediaTrigger[] = [
   // 2b. Cafe Mini-Map (Node 02 entry)
   {
     mediaKey: 'media_mini_map',
-    filename: 'MINI_MAP.png',
+    filename: fs.existsSync(path.join(MEDIA_DIR, 'MINI_MAP_scene_table5.png')) ? 'MINI_MAP_scene_table5.png' : 'MINI_MAP.png',
     condition: (before, after) =>
       before.canonical.currentNode === 'NODE_01' && after.canonical.currentNode === 'NODE_02',
   },
@@ -209,7 +209,85 @@ export function getCoverPath(): string | null {
   return fs.existsSync(entrance) ? entrance : null;
 }
 
-export function getMapPath(): string | null {
+export function resolveMapRoomId(state?: RunState): string | null {
+  if (!state) return null;
+  const currentScene = state.canonical.currentScene || state.scene?.sceneId || '';
+  const currentNode = state.canonical.currentNode || '';
+
+  if (
+    currentScene === 'scene_entrance' ||
+    currentScene === 'scene_hosseini_alley' ||
+    currentNode === 'NODE_01' ||
+    currentNode === 'NODE_13' ||
+    currentNode === 'NODE_14' ||
+    currentNode === 'NODE_15'
+  ) {
+    return 'scene_entrance';
+  }
+  if (
+    currentScene === 'scene_table5' ||
+    currentScene === 'scene_table_5' ||
+    currentNode === 'NODE_02'
+  ) {
+    return 'scene_table5';
+  }
+  if (
+    currentScene === 'scene_counter' ||
+    currentNode === 'NODE_03' ||
+    currentNode === 'NODE_04' ||
+    currentNode === 'NODE_05'
+  ) {
+    return 'scene_counter';
+  }
+  if (
+    currentScene === 'scene_gallery' ||
+    currentScene === 'scene_painting_back' ||
+    currentNode === 'NODE_06' ||
+    currentNode === 'NODE_07'
+  ) {
+    return 'scene_gallery';
+  }
+  if (
+    currentScene === 'scene_storage' ||
+    currentNode === 'NODE_08' ||
+    currentNode === 'NODE_09'
+  ) {
+    return 'scene_storage';
+  }
+  if (
+    currentScene === 'scene_office' ||
+    currentNode === 'NODE_10' ||
+    currentNode === 'NODE_11'
+  ) {
+    return 'scene_office';
+  }
+  if (
+    currentScene === 'scene_cctv' ||
+    currentNode === 'NODE_12'
+  ) {
+    return 'scene_cctv';
+  }
+  if (
+    currentScene === 'scene_archive_collector' ||
+    currentScene === 'scene_collector_meeting' ||
+    currentScene === 'scene_archive' ||
+    currentScene === 'scene_underpainting' ||
+    currentNode === 'NODE_16' ||
+    currentNode === 'NODE_17' ||
+    currentNode === 'NODE_18'
+  ) {
+    return 'scene_archive_collector';
+  }
+
+  return null;
+}
+
+export function getMapPath(state?: RunState): string | null {
+  const roomId = resolveMapRoomId(state);
+  if (roomId) {
+    const localized = path.join(MEDIA_DIR, `MINI_MAP_${roomId}.png`);
+    if (fs.existsSync(localized)) return localized;
+  }
   const map = path.join(MEDIA_DIR, 'MINI_MAP.png');
   return fs.existsSync(map) ? map : null;
 }

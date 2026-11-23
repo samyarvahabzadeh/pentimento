@@ -15,7 +15,8 @@ import {
   revokeAccess,
 } from '../storage/db.js';
 import { ROLE_SELECTION_PROMPT } from '../canon/node00.js';
-import { getCoverPath, getMapPath, getPendingMediaForTurn } from './mediaDispatcher.js';
+import { getCoverPath, getMapPath, getPendingMediaForTurn, resolveMapRoomId } from './mediaDispatcher.js';
+import { LOCATION_REGISTRY } from '../core/worldAffordances.js';
 import { createInitialRunState } from '../core/initialState.js';
 import type { RunState } from '../core/types.js';
 import { computeBuildAttestation } from '../core/buildAttestation.js';
@@ -111,6 +112,36 @@ export function getReplyMarkupForState(state: RunState): any {
     return ENDING_KEYBOARD;
   }
   return GAMEPLAY_KEYBOARD;
+}
+
+export function buildMapCaption(state?: RunState): string {
+  if (!state) {
+    return '🗺️ نقشهٔ راهنمای کافه پنتیمنتو (پلاک ۵۵)\nبرای حرکت به هر بخش بنویس: «میرم [نام بخش]»';
+  }
+
+  const roomId = resolveMapRoomId(state);
+  const currentScene = state.canonical.currentScene || state.scene?.sceneId || 'scene_entrance';
+  const loc = LOCATION_REGISTRY[currentScene] || (roomId ? LOCATION_REGISTRY[roomId] : null);
+  const roomName = loc ? loc.nameFa : 'کافه پنتیمنتو';
+
+  const exits = (loc?.reachableFrom || [])
+    .map(id => LOCATION_REGISTRY[id]?.nameFa)
+    .filter((name): name is string => Boolean(name));
+
+  const lines = [
+    '🗺️ نقشهٔ راهنمای فضایی کافه پنتیمنتو (پلاک ۵۵)',
+    '',
+    `📍 موقعیت فعلی شما: ${roomName}`,
+  ];
+
+  if (exits.length > 0) {
+    lines.push(`🚪 بخش‌ها و خروجی‌های متصل: ${exits.join(' • ')}`);
+  }
+
+  lines.push('');
+  lines.push('💡 برای جابه‌جایی بنویس: «میرم [نام بخش]» (مثلاً: «میرم پیشخوان» یا «میرم پیش سالار»)');
+
+  return lines.join('\n');
 }
 
 function createNewState(): RunState {
@@ -247,11 +278,13 @@ bot.command('where', async (ctx) => {
 bot.command('map', async (ctx) => {
   const userId = ctx.from?.id?.toString();
   if (!userId || !(await ensureAuthorized(ctx))) return;
-  const mapPath = getMapPath();
+  const record = getRunByTelegramUser(userId);
+  const state = record?.state;
+  const mapPath = getMapPath(state);
   if (mapPath) {
     try {
       await ctx.replyWithPhoto(new InputFile(mapPath), {
-        caption: '🗺️ نقشهٔ راهنمای کافه پنتیمنتو (پلاک ۵۵)\nبرای حرکت به هر بخش بنویس: «میرم [نام بخش]»',
+        caption: buildMapCaption(state),
       });
       return;
     } catch (e: any) {
@@ -510,10 +543,12 @@ bot.on('message:text', async (ctx) => {
             console.error('[Bot] Error sending turn photo:', e.message);
           }
         } else if ((result.validation.acceptedActionId as any) === 'MAP_REQUEST') {
-          const mapPath = getMapPath();
+          const mapPath = getMapPath(result.stateAfter);
           if (mapPath) {
             try {
-              await ctx.replyWithPhoto(new InputFile(mapPath));
+              await ctx.replyWithPhoto(new InputFile(mapPath), {
+                caption: buildMapCaption(result.stateAfter),
+              });
             } catch (e: any) {
               console.error('[Bot] Error sending map photo:', e.message);
             }
