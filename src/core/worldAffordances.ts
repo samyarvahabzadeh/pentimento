@@ -663,10 +663,10 @@ export function findLocation(keyword: string): LocationDefinition | undefined {
   if (/underpainting|لایه.*(نهایی|زیرین)|لایه‌های\s*زیرین|زیرین.*تابلو|نقاشی.*زیرین|جمع.*بندی.*تابلو|افشای.*تاریخی/.test(norm)) return LOCATION_REGISTRY.scene_underpainting;
   if (/پشت.*(تابلو|بوم|قاب)|painting.*back|back.*label/.test(norm)) return LOCATION_REGISTRY.scene_painting_back;
   if (/gallery|painting|central_painting|گالری|دیوار.*گالری|تابلو|نقاشی/.test(norm)) return LOCATION_REGISTRY.scene_gallery;
-  if (/office|salar|دفتر|حسابداری|اتاق.*سالار|مدیریت/.test(norm)) return LOCATION_REGISTRY.scene_office;
+  if (/office|salar|دفتر|حسابداری|اتاق.*سالار|مدیریت|پیش.*سالار/.test(norm)) return LOCATION_REGISTRY.scene_office;
   if (/storage|انبار|کارتن/.test(norm)) return LOCATION_REGISTRY.scene_storage;
-  if (/counter|barista|yashin|mani|کانتر|پیشخوان|دم\s*بار|پشت\s*بار|بخش\s*بار|(?:^|\s)بار(?:$|[،,\s])|پیش.*یاشین|پیش.*مانی/.test(norm)) return LOCATION_REGISTRY.scene_counter;
-  if (/table5|wooden_chair|table5_cup|table5_saucer|میز\s*۵|میز\s*پنج|(?:^|\s)سالن(?:$|[،,\s])/.test(norm)) return LOCATION_REGISTRY.scene_table5;
+  if (/counter|barista|yashin|mani|کانتر|پیشخوان|باریستا|دم\s*بار|پشت\s*بار|بخش\s*بار|(?:^|\s)بار(?:$|[،,\s])|پیش.*یاشین|پیش.*مانی|پیش.*باریستا/.test(norm)) return LOCATION_REGISTRY.scene_counter;
+  if (/table5|wooden_chair|table5_cup|table5_saucer|میز\s*۵|میز\s*پنج|(?:^|\s)سالن(?:$|[،,\s])|پیش.*حانیه|پیش.*پنتی|پیش.*گربه/.test(norm)) return LOCATION_REGISTRY.scene_table5;
   if (/cctv|دوربین|مانیتورینگ|حراست/.test(norm)) return LOCATION_REGISTRY.scene_cctv;
   if (/hosseini|کوچه.*حسینی|تاریکی.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_hosseini_alley;
   if (/entrance|door|cafe_door|ورودی|کوچه|بیرون/.test(norm) || hasStandaloneLexeme(norm, 'در')) {
