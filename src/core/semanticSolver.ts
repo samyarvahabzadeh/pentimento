@@ -552,6 +552,7 @@ export function solveSemanticAction(
   // 2c. Inspecting living entities (Cat Penti)
   if (
     ['inspect', 'touch'].includes(p) &&
+    !method.includes('پنتیمنتو') &&
     (targetKey.includes('penti') || targetKey.includes('cat') || method.includes('پنتی') || method.includes('گربه'))
   ) {
     if (!state.canonical.evidenceIds.includes('fact_penti_agitation')) {

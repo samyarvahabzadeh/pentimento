@@ -621,7 +621,7 @@ export function findWorldObject(keyword: string, objects: Record<string, WorldOb
   if (/مرد.*(پالتو|دستکش|خروج)|پالتوپوش|پالتوش|دست(?:‌|\s*)هاش|دستکش(?:ش|.*قرمز)/.test(norm)) return objects.exiting_man;
   if (!/میز\s*(?:۵|5|پنج)/.test(norm) && (/زونکن|اسناد|سند|مدارک|دفتر.*حسابداری|دفتر.*مالی|فاکتور.*سالار|فاکتور.*پلاک|فاکتور|برگه.*میز|کاغذ.*میز|برگه‌ها|کاغذها|اسناد.*میز|نوشته.*میز|میز.*(سالار|کار|دفتر|حسابداری)|(کشو|روی|زیر).*میز.*(سالار|کار|دفتر|حسابداری)/.test(norm) || (/میز.*(می‌?گردم|بگردم|وارسی|ببینم)/.test(norm) && !/میز\s*(?:۵|5|پنج)/.test(norm)))) return objects.office_ledger;
   if (/برچسب.*(پشت|مالکیت)|اعداد.*(برچسب|تابلو)|label/.test(norm)) return objects.painting_back_label;
-  if (/پنتی|گربه|بچه‌گربه/.test(norm)) return objects.cat_penti;
+  if (!/پنتیمنتو/.test(norm) && (hasStandaloneLexeme(norm, 'پنتی') || /گربه|بچه‌گربه/.test(norm))) return objects.cat_penti;
   if (/جعبه.*(تمیز|انبار|قفسه)|کارتن.*(تمیز|انبار)|قوطی.*(انبار|توی\s*انبار)|بسته‌?بندی.*انبار|storage_box/.test(norm)) return objects.storage_box_clean;
   if (/تابلو|نقاشی|بوم|رنگ.*روغن|پنتیمنتو/.test(norm)) return objects.central_painting;
   // Specific machinery must be resolved before the generic "espresso" token

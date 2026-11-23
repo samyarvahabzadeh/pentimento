@@ -2,7 +2,7 @@ import type { RunState } from '../core/types.js';
 import { renderSceneOverview } from '../core/conversationGrounding.js';
 import { INITIAL_WORLD_OBJECTS, LOCATION_REGISTRY } from '../core/worldAffordances.js';
 
-const NPC_NAMES: Record<string, string> = {
+export const NPC_NAMES: Record<string, string> = {
   salar: 'سالار',
   haniyeh: 'حانیه',
   mani: 'مانی',

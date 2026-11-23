@@ -26,7 +26,7 @@ import {
   verifyAccessPassword,
   verifyAnyAccessPassword,
 } from './accessControl.js';
-import { buildPlayerHelp, buildRecapPanel, buildWherePanel } from './playerPanel.js';
+import { buildPlayerHelp, buildRecapPanel, buildWherePanel, NPC_NAMES } from './playerPanel.js';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
@@ -112,7 +112,135 @@ export function getReplyMarkupForState(state: RunState): any {
   if (state.canonical.currentNode === 'NODE_18') {
     return ENDING_KEYBOARD;
   }
-  return GAMEPLAY_KEYBOARD;
+
+  const currentScene = state.canonical.currentScene || state.scene?.sceneId || 'scene_entrance';
+  const keyboard = new Keyboard();
+
+  switch (currentScene) {
+    case 'scene_entrance':
+    case 'scene_hosseini_alley':
+      keyboard
+        .text('🚪 ورود به سالن کافه')
+        .text('📄 برداشتن رسید خیس')
+        .row()
+        .text('👀 نگاه به مرد پالتوپوش')
+        .text('💡 الان چیکار کنم؟')
+        .row()
+        .text('🎒 وسایل من')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_table5':
+    case 'scene_table_5':
+      keyboard
+        .text('🔍 بررسی فنجان اسپرسو')
+        .text('🗣️ صحبت با حانیه')
+        .row()
+        .text('🚶 رفتن به پیشخوان')
+        .text('🚶 رفتن به دفتر سالار')
+        .row()
+        .text('🚶 رفتن به دیوار گالری')
+        .text('💡 الان چیکار کنم؟')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_counter':
+      keyboard
+        .text('☕ صحبت با یاشین (قهوه)')
+        .text('🧪 صحبت با مانی (حلال)')
+        .row()
+        .text('💻 بررسی سیستم پوز')
+        .text('🚶 بازگشت به میز ۵')
+        .row()
+        .text('🚶 رفتن به دفتر سالار')
+        .text('💡 الان چیکار کنم؟')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_office':
+      keyboard
+        .text('🗣️ صحبت با سالار صالحی')
+        .text('📁 وارسی اسناد و فاکتورها')
+        .row()
+        .text('📹 رفتن به مانیتورینگ دوربین')
+        .text('🚶 بازگشت به میز ۵')
+        .row()
+        .text('🚶 رفتن به پیشخوان')
+        .text('💡 الان چیکار کنم؟')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_cctv':
+      keyboard
+        .text('📹 بازبینی فیلم و لاگ دوربین‌ها')
+        .text('💾 بررسی رویدادهای ذخیره‌سازی')
+        .row()
+        .text('🚶 بازگشت به دفتر سالار')
+        .text('🚶 رفتن به پیشخوان')
+        .row()
+        .text('💡 الان چیکار کنم؟')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_gallery':
+    case 'scene_painting_back':
+      keyboard
+        .text('🎨 بررسی تابلوی پنتیمنتو')
+        .text('🔍 وارسی پشت قاب تابلو')
+        .row()
+        .text('📦 رفتن به انبار')
+        .text('🚶 بازگشت به میز ۵')
+        .row()
+        .text('💡 الان چیکار کنم؟')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_storage':
+      keyboard
+        .text('📦 وارسی کارتن تمیز در قفسه')
+        .text('🚶 بازگشت به دیوار گالری')
+        .row()
+        .text('🚶 رفتن به سالن اصلی')
+        .text('💡 الان چیکار کنم؟')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_collector_meeting':
+      keyboard
+        .text('💼 گفتگو با نماینده خریدار')
+        .text('🃏 بلوف زدن با فاکتور جعلی')
+        .row()
+        .text('🚶 رفتن به میز آرشیو')
+        .text('🚶 بازگشت به دفتر سالار')
+        .row()
+        .text('💡 الان چیکار کنم؟')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_archive':
+      keyboard
+        .text('📊 تحلیل و سنتز مدارک')
+        .text('🎨 بررسی لایه‌های زیرین تابلو')
+        .row()
+        .text('🚶 بازگشت به سالن')
+        .text('💡 الان چیکار کنم؟')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    case 'scene_underpainting':
+      keyboard
+        .text('🔍 بررسی لایه تاریخی تابلو')
+        .text('⚖️ ثبت تصمیم نهایی پرونده')
+        .row()
+        .text('🚶 بازگشت به میز آرشیو')
+        .text('🗺️ نقشه کافه');
+      break;
+
+    default:
+      return GAMEPLAY_KEYBOARD;
+  }
+
+  return keyboard.resized().persistent();
 }
 
 export function buildMapCaption(state?: RunState): string {
@@ -130,17 +258,27 @@ export function buildMapCaption(state?: RunState): string {
     .filter((name): name is string => Boolean(name));
 
   const lines = [
-    '🗺️ نقشهٔ راهنمای فضایی کافه پنتیمنتو (پلاک ۵۵)',
+    '🗺️ نقشهٔ فضایی کافه پنتیمنتو (پلاک ۵۵)',
     '',
-    `📍 موقعیت فعلی شما: ${roomName}`,
+    `📍 موقعیت شما: ${roomName}`,
   ];
 
   if (exits.length > 0) {
-    lines.push(`🚪 بخش‌ها و خروجی‌های متصل: ${exits.join(' • ')}`);
+    lines.push(`🚪 اتاق‌های متصل (مسیرهای مستقیم):`);
+    for (const exit of exits) {
+      lines.push(`  ▫️ ${exit}`);
+    }
+  }
+
+  const entities = (state.scene?.activeEntityIds || loc?.activeEntityIds || [])
+    .map(id => NPC_NAMES[id])
+    .filter(Boolean);
+  if (entities.length > 0) {
+    lines.push(`👥 حاضر در این بخش: ${entities.join('، ')}`);
   }
 
   lines.push('');
-  lines.push('💡 برای جابه‌جایی بنویس: «میرم [نام بخش]» (مثلاً: «میرم پیشخوان» یا «میرم پیش سالار»)');
+  lines.push('💡 می‌توانی از دکمه‌های زیر استفاده کنی یا هر دستوری را به زبان خودت بنویسی.');
 
   return lines.join('\n');
 }
@@ -532,6 +670,10 @@ bot.on('message:text', async (ctx) => {
         }
 
         const isRoleSelection = record.state.canonical.currentNode === 'NODE_00';
+        const sceneBefore = record.state.canonical.currentScene || record.state.scene?.sceneId;
+        const sceneAfter = result.stateAfter.canonical.currentScene || result.stateAfter.scene?.sceneId;
+        const sceneChanged = Boolean(sceneBefore && sceneAfter && sceneBefore !== sceneAfter);
+        const enteredGameFromRole = isRoleSelection && result.stateAfter.canonical.currentNode === 'NODE_01';
 
         // Check if any milestone media should be shown
         const media = getPendingMediaForTurn(
@@ -558,6 +700,17 @@ bot.on('message:text', async (ctx) => {
               return;
             } catch (e: any) {
               console.error('[Bot] Error sending map photo:', e.message);
+            }
+          }
+        } else if (sceneChanged || enteredGameFromRole) {
+          const mapPath = getMapPath(result.stateAfter);
+          if (mapPath) {
+            try {
+              await ctx.replyWithPhoto(new InputFile(mapPath), {
+                caption: buildMapCaption(result.stateAfter),
+              });
+            } catch (e: any) {
+              console.error('[Bot] Error sending scene change mini-map photo:', e.message);
             }
           }
         }
@@ -624,39 +777,41 @@ const server = http.createServer(async (req, res) => {
   res.end('Pentimento Telegram Bot is running live.');
 });
 
-server.listen(PORT, async () => {
-  console.log(`[Bot] HTTP Server listening on port ${PORT}`);
-  try {
-    await configurePlayerCommands();
-  } catch (e: any) {
-    console.error('[Bot] Failed to configure player commands:', e.message);
-  }
-  
-  if (isRender) {
-    const webhookUrl = process.env.RENDER_EXTERNAL_URL 
-      ? `${process.env.RENDER_EXTERNAL_URL}${webhookPath}`
-      : `https://pentimento-bot.onrender.com${webhookPath}`;
-      
-    console.log(`[Bot] Configuring Telegram Webhook to ${webhookUrl}...`);
+if (process.env.NODE_ENV !== 'test' && !process.argv[1]?.includes('test')) {
+  server.listen(PORT, async () => {
+    console.log(`[Bot] HTTP Server listening on port ${PORT}`);
     try {
-      await bot.api.setWebhook(webhookUrl, { drop_pending_updates: false });
-      console.log(`[Bot] ✅ Telegram Webhook registered at ${webhookUrl}!`);
+      await configurePlayerCommands();
     } catch (e: any) {
-      console.error('[Bot] Failed to register Telegram Webhook:', e.message);
+      console.error('[Bot] Failed to configure player commands:', e.message);
     }
-  } else {
-    console.log('[Bot] Running via Long Polling in local mode...');
-    try {
-      await bot.api.deleteWebhook({ drop_pending_updates: false });
-      await bot.init();
-      bot.start({
-        drop_pending_updates: false,
-        onStart: (botInfo) => {
-          console.log(`[Bot] ✅ @${botInfo.username} is running live via Long Polling!`);
-        },
-      });
-    } catch (err: any) {
-      console.error('[Bot] Startup error:', err.message);
+    
+    if (isRender) {
+      const webhookUrl = process.env.RENDER_EXTERNAL_URL 
+        ? `${process.env.RENDER_EXTERNAL_URL}${webhookPath}`
+        : `https://pentimento-bot.onrender.com${webhookPath}`;
+        
+      console.log(`[Bot] Configuring Telegram Webhook to ${webhookUrl}...`);
+      try {
+        await bot.api.setWebhook(webhookUrl, { drop_pending_updates: false });
+        console.log(`[Bot] ✅ Telegram Webhook registered at ${webhookUrl}!`);
+      } catch (e: any) {
+        console.error('[Bot] Failed to register Telegram Webhook:', e.message);
+      }
+    } else {
+      console.log('[Bot] Running via Long Polling in local mode...');
+      try {
+        await bot.api.deleteWebhook({ drop_pending_updates: false });
+        await bot.init();
+        bot.start({
+          drop_pending_updates: false,
+          onStart: (botInfo) => {
+            console.log(`[Bot] ✅ @${botInfo.username} is running live via Long Polling!`);
+          },
+        });
+      } catch (err: any) {
+        console.error('[Bot] Startup error:', err.message);
+      }
     }
-  }
-});
+  });
+}
