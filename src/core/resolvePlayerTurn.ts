@@ -679,21 +679,29 @@ export async function resolvePlayerTurn(
 
   // ─── STEP 5: Other Emergent Physical / Affordance Actions ───
   if (!specialCandidateUsed && !rawNarrative) {
-    const solverRes = solveSemanticAction(semantic, state);
-    actionSucceeded = solverRes.isSuccess;
-    semanticFailureReason = solverRes.reasonIfFailed;
-    resolutionPath = 'semantic';
-    specialCandidateUsed = false;
-    source = 'deterministic';
-    selectedCandidate = makeSyntheticCandidate('GENERIC_EMERGENT', 'other', [semantic.target || 'world'], playerInput);
-    resolution = createTurnResolution('GENERIC_EMERGENT', solverRes.acceptedEffects);
-    rawNarrative = solverRes.narrative;
+    const isConversationalUtterance =
+      (/[؟?]/.test(playerInput) || /نظرت|چطوره|چطوری|حالت|چرا|چی|کیه|کجاست|چیکار|سلام|درود|خسته|ممنون|رفیق|داداش|بگو|توضیح/.test(playerInput)) &&
+      !/بررسی|نگاه|وارسی|چک|دیدن|بردار|بگیر|برو|حرکت|بازگشت|خروج|سنگ‌فرش|تابلو|فنجان|دستگیره|کلید|پوز|سیستم|سند|فاکتور|نامه|کیف|جیب/.test(playerInput);
+
+    if (!isConversationalUtterance) {
+      const solverRes = solveSemanticAction(semantic, state);
+      actionSucceeded = solverRes.isSuccess;
+      semanticFailureReason = solverRes.reasonIfFailed;
+      resolutionPath = 'semantic';
+      specialCandidateUsed = false;
+      source = 'deterministic';
+      selectedCandidate = makeSyntheticCandidate('GENERIC_EMERGENT', 'other', [semantic.target || 'world'], playerInput);
+      resolution = createTurnResolution('GENERIC_EMERGENT', solverRes.acceptedEffects);
+      rawNarrative = solverRes.narrative;
+    }
   }
 
   // ─── STEP 6: Fallback ───
   if (!rawNarrative) {
     // Check if player is conversing with someone present in the room
-    const presentNpcCandidate = directNpc ?? (presentNpcs.length === 1 ? presentNpcs[0] : directNpcIds.find(id => presentNpcs.includes(id)));
+    const recentActor = state.scene.recentBeats.slice(-3).reverse().find(b => b.actors?.some(a => presentNpcs.includes(a)));
+    const previousNpc = recentActor ? directNpcIds.find(id => recentActor.topics?.includes(id) || recentActor.actors?.includes(id)) : undefined;
+    const presentNpcCandidate = directNpc ?? (previousNpc && presentNpcs.includes(previousNpc) ? previousNpc : (presentNpcs.length === 1 ? presentNpcs[0] : directNpcIds.find(id => presentNpcs.includes(id))));
     if (presentNpcCandidate && transport && !/بررسی|نگاه|بردار|برو|حرکت|بازگشت|خروج/.test(playerInput)) {
       try {
         const living = await generateLivingDialogue(presentNpcCandidate, playerInput, state, transport);

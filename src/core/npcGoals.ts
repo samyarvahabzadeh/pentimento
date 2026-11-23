@@ -181,8 +181,9 @@ export function evaluateNpcReaction(
     };
   }
 
-  // 2. Asking for private phone / personal belongings
-  if (primitive === 'ask' && (/phone|گوشی|موبایل/.test(target || '') || /phone|گوشی|موبایل/.test(method || '') || /phone|گوشی|موبایل/.test(state.scene.recentBeats.slice(-1)[0]?.playerInput || ''))) {
+  // 2. Asking for private phone / personal belongings (not making a phone call)
+  const isCallingOnPhone = /زنگ|تماس|پیام|ویس/.test(target || '') || /زنگ|تماس|پیام|ویس/.test(method || '') || /زنگ|تماس|پیام|ویس/.test(state.scene.recentBeats.slice(-1)[0]?.playerInput || '');
+  if (!isCallingOnPhone && primitive === 'ask' && (/phone|گوشی|موبایل/.test(target || '') || /phone|گوشی|موبایل/.test(method || '') || /phone|گوشی|موبایل/.test(state.scene.recentBeats.slice(-1)[0]?.playerInput || ''))) {
     return {
       responseProse: `${profile.nameFa} دستش را روی وسایل شخصی‌اش می‌گذارد و با اخم می‌گوید:
 «وسایل شخصی و موبایل من مدرک جرم نیست. سؤالی از پرونده داری بپرس، به حریم خصوصی دیگران کاری نداشته باش.»`,
