@@ -63,11 +63,22 @@ export class GroqAdapter implements LLMTransport {
       const start = Date.now();
 
       try {
+        const outboundMessages = [...messages];
+        if (options.responseFormatJson) {
+          const hasJsonWord = outboundMessages.some(m => /json/i.test(m.content));
+          if (!hasJsonWord && outboundMessages.length > 0) {
+            outboundMessages[0] = {
+              ...outboundMessages[0],
+              content: `${outboundMessages[0].content}\n\n(Output must be valid JSON format)`,
+            };
+          }
+        }
+
         const body: any = {
           model,
-          messages,
+          messages: outboundMessages,
           temperature: options.temperature ?? 0.7,
-          max_tokens: options.maxTokens ?? 150,
+          max_tokens: options.maxTokens ?? 350,
         };
 
         if (options.responseFormatJson) {

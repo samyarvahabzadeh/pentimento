@@ -58,7 +58,7 @@ class ResilientCompositeTransport implements LLMTransport {
 }
 
 export function createTransport(): LLMTransport {
-  const provider = (process.env.ACTIVE_PROVIDER ?? 'openrouter').toLowerCase().trim();
+  const provider = (process.env.ACTIVE_PROVIDER ?? 'groq').toLowerCase().trim();
 
   const openrouter = new OpenRouterAdapter();
   const groq = new GroqAdapter();
@@ -68,17 +68,17 @@ export function createTransport(): LLMTransport {
   let orderedTransports: LLMTransport[] = [];
 
   switch (provider) {
-    case 'openrouter':
-      orderedTransports = [openrouter, groq, gemini, orca];
-      break;
     case 'groq':
-      orderedTransports = [groq, openrouter, gemini, orca];
+      orderedTransports = [groq, gemini, openrouter, orca];
       break;
     case 'gemini':
       orderedTransports = [gemini, groq, openrouter, orca];
       break;
-    default:
+    case 'openrouter':
       orderedTransports = [openrouter, groq, gemini, orca];
+      break;
+    default:
+      orderedTransports = [groq, gemini, openrouter, orca];
       break;
   }
 

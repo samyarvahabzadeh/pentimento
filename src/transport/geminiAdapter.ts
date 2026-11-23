@@ -20,8 +20,8 @@ export class GeminiAdapter implements LLMTransport {
     this.apiKey = process.env.GEMINI_API_KEY ?? '';
     this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
 
-    const preferred = process.env.GEMINI_MODEL ?? 'gemini-3.5-flash-lite';
-    const fallbackList = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.5-flash'];
+    const preferred = process.env.GEMINI_MODEL ?? 'gemini-3-flash-preview';
+    const fallbackList = ['gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
     this.candidateModels = Array.from(new Set([preferred, ...fallbackList])).filter(Boolean);
 
     if (!this.apiKey) {
