@@ -403,13 +403,15 @@ export async function resolvePlayerTurn(
   // A sentence can contain both entering and closing the door. The semantic
   // extractor reasonably notices the final `use door` verb, but the spatial
   // transition must still happen before that door state is applied.
+  const isOnlyDoorLocking = !/(?:وارد|ورود(?!ی)|پا\s*به)/.test(playerInput) && /قفل/.test(playerInput);
   const explicitCafeEntry = normalizeSceneId(state.canonical.currentScene || state.scene.sceneId) === 'scene_entrance' &&
-    /(?:وارد\s*(?:کافه|سالن)|(?:می\s*?روم|می\s*?رم|میرم|میام|می‌آیم)\s*(?:تو|داخل)\s*(?:کافه|سالن)|پا\s*به\s*(?:کافه|سالن))/.test(playerInput);
+    !isOnlyDoorLocking &&
+    /(?:(?:وارد|ورود(?!ی))\s*(?:به\s*)?(?:داخل|توی?)?\s*(?:کافه|سالن)|(?:می\s*?روم|می\s*?رم|میرم|میام|می‌آیم|رفتن|قدم)\s*(?:به\s*)?(?:تو|داخل)\s*(?:کافه|سالن)|پا\s*به\s*(?:کافه|سالن))/.test(playerInput);
   const isObjectManipulationMove = !explicitCafeEntry && (
     /پرت|جابه‌?جا|منتقل|سُر|بلند|پرده/.test(playerInput) ||
     (/هل|می‌?کشم|بکشم/.test(playerInput) && !/وارد|داخل/.test(playerInput))
   );
-  const explicitMovementClause = /(?:می‌?ر(?:م|وم)|میرم|می‌?(?:آ|ا)م|میام|حرکت\s*می‌?|قدم\s*برمی‌?|وارد\s*(?:می‌?|ش)|خارج\s*(?:می‌?|ش)|برمی‌?گرد)/.test(playerInput);
+  const explicitMovementClause = /(?:می‌?ر(?:م|وم)|میرم|می‌?(?:آ|ا)م|میام|رفتن|برو|بریم|حرکت|قدم|وارد|ورود|خارج|خروج|برمی‌?گرد|برگرد)/.test(playerInput);
   const targetLoc =
     findLocation(playerInput) ||
     inferImplicitDestination(playerInput, state) ||
@@ -673,7 +675,7 @@ export async function resolvePlayerTurn(
   }
 
   // 6. Check Ending Resolution if in finale
-  if (!resolution.endingId && state.canonical.currentNode === 'NODE_18' && selectedCandidate.id === 'RESOLVE_FINAL_ENDING_DECISION') {
+  if (!resolution.endingId && selectedCandidate.id === 'RESOLVE_FINAL_ENDING_DECISION') {
     state.endingEvaluation = evaluateEnding(state);
     if (state.endingEvaluation) {
       resolution.endingId = state.endingEvaluation.endingId;
@@ -696,10 +698,10 @@ export async function resolvePlayerTurn(
     actionSucceeded,
     consumesWorldTime: !(fallbackUsed || semanticFailureReason === 'improvisation_needs_concrete_method'),
   });
-  if (situationOutcome.narrativeOverride) {
+  if (situationOutcome.narrativeOverride && !resolution.endingId) {
     rawNarrative = situationOutcome.narrativeOverride;
   }
-  if (situationOutcome.narrativeAppend) {
+  if (situationOutcome.narrativeAppend && !resolution.endingId) {
     rawNarrative = `${rawNarrative}\n\n${situationOutcome.narrativeAppend}`;
   }
   debugInfo.situation = situationOutcome;

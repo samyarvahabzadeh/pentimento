@@ -154,8 +154,8 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   } else if (/حواس.*پرت|سرگرم.*کن|پرت.*کردن.*حواس|دست.*به.*سر/.test(norm)) {
     primitive = 'distract';
   } else if (
-    (!/نگاه|دیدن|ببین|انداخت|سرک|گوش|شنود|بشنو/.test(norm) || /وارد|می‌?ر[وو]م|میرم|می‌?آم|میام|قدم\s*بر/.test(norm)) &&
-    /پشت.*کانتر|پشت.*بار|وارد|(?:از\s+(?:کافه|سالن|اتاق)\s+خارج)|(?:خارج|بیرون)\s+می‌?(?:روم|رم|شوم|زنم)|داخل.*(کافه|سالن|اتاق)|برم|می‌?رم|می‌?ر[وو]م|میرم|می‌?(?:آ|ا)م|قدم|دستگیره.*فشار/.test(norm)
+    (!/نگاه|دیدن|ببین|انداخت|سرک|گوش|شنود|بشنو|بررسی|وارسی|چک|خواندن|بخوان|بو/.test(norm) || /(?:^|\s)(?:وارد|ورود|رفتن|برو|حرکت)(?:\s|$)|می‌?ر[وو]م|میرم|می‌?آم|میام|قدم\s*بر/.test(norm)) &&
+    /پشت.*کانتر|پشت.*بار|(?:^|\s)(?:وارد|ورود|رفتن|برو|حرکت)(?:\s|$)|(?:از\s+(?:کافه|سالن|اتاق|انبار|دفتر)\s+خارج)|(?:خارج|بیرون)\s+می‌?(?:روم|رم|شوم|زنم|آیم|ام)|داخل.*(کافه|سالن|اتاق|انبار|دفتر)|برم|می‌?رم|می‌?ر[وو]م|میرم|می‌?(?:آ|ا)م|قدم|دستگیره.*فشار/.test(norm)
   ) {
     primitive = 'move';
   } else if (/تهدید|تحت.*فشار|فشار.*(می‌?آور|بیار)|زور/.test(norm)) {
@@ -602,6 +602,24 @@ export function generateSceneCandidates(state: RunState, playerInput: string): C
     risk: 0,
   });
 
+  if (
+    state.canonical.currentNode !== 'NODE_00' &&
+    state.canonical.currentNode !== 'NODE_01' &&
+    !candidates.some(c => c.id === 'RESOLVE_FINAL_ENDING_DECISION')
+  ) {
+    candidates.push({
+      id: 'RESOLVE_FINAL_ENDING_DECISION',
+      kind: 'other',
+      targetIds: ['final_truth'],
+      summary: 'ثبت جمع‌بندی نهایی و پایان پرونده',
+      effects: [
+        { type: 'set_flag', flag: 'final_decision_requested', value: true },
+      ],
+      narrativeBeatId: 'beat_resolve_final_ending',
+      risk: 0,
+    });
+  }
+
   candidates.push({
     id: 'action_leave_cafe_home',
     kind: 'leave',
@@ -747,7 +765,9 @@ export function matchCandidateDeterministically(
     const submit = candidates.find(c => c.id === 'SUBMIT_ARCHIVE_SYNTHESIS');
     if (submit) return { candidateId: submit.id, confidence: 0.98, kind: submit.kind };
   }
-  if (/ثبت.*(نتیجه|پایان)|جمع.*بندی.*نهایی|پایان.*پرونده|پرونده.*پایان|تصمیم.*(?:نهایی|می‌?گیر|من)|(?:حفظ|نگهداشت).*(?:حقیقت|آدم‌ها)|اعلام.*پایان/.test(norm)) {
+  if (
+    /(?:ثبت.*(?:نتیجه|پایان|حقیقت)|(?:نتیجه|پایان|حقیقت|مستند).*ثبت|جمع.*بندی.*نهایی|پایان.*(?:پرونده|ماجرا)|(?:پرونده|ماجرا).*(?:پایان|تمام|مختومه|(?:می‌?|ب)?بند(?:یم|م)|بستن)|تصمیم.*(?:نهایی|می‌?گیر|من)|(?:حفظ|نگهداشت).*(?:حقیقت|آدم‌ها)|اعلام.*پایان)/.test(norm)
+  ) {
     const final = candidates.find(c => c.id === 'RESOLVE_FINAL_ENDING_DECISION');
     if (final) return { candidateId: final.id, confidence: 0.98, kind: final.kind };
   }

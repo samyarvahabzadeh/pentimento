@@ -365,11 +365,15 @@ function applyStrategicCommitment(
 ): { eventId: string; prose: string } | undefined {
   if (!context.actionSucceeded) return undefined;
   const raw = context.rawInput;
-  const collectorContext = currentNpcId(context) === 'collector' || state.canonical.currentScene === 'scene_collector_meeting';
+  const collectorContext = currentNpcId(context) === 'collector' ||
+    state.canonical.currentScene === 'scene_collector_meeting' ||
+    /(?:خریدار|نماینده.*خریدار|پلاک\s*۵۵)/.test(raw);
 
+  const isDealRejection = /(?:(?:^|\s)رد(?:\s|می‌?کن|کرد|کردن)|قبول\s*نمی|نمی‌?پذیر|واگذار\s*نمی)/.test(raw);
   if (
+    !isDealRejection &&
     collectorContext &&
-    /(?:پیشنهاد|پول|معامله|قرارداد).*(?:قبول|می‌?پذیر|موافق)|(?:تابلو|بوم).*(?:می‌?فروش|واگذار)/.test(raw)
+    (/(?:پیشنهاد|پول|معامله|قرارداد|توافق|مصالحه).*(?:قبول|می‌?پذیر|موافق|نهایی|پذیرش)|(?:تابلو|بوم).*(?:می‌?فروش|واگذار)|(?:پذیرش|قبول).*(?:معامله|پیشنهاد|توافق|مصالحه)|توافق\s*می‌?کنم/.test(raw))
   ) {
     addCanonicalFlag(state, 'accepted_financial_offer');
     return {
@@ -380,7 +384,7 @@ function applyStrategicCommitment(
 
   if (
     collectorContext &&
-    /(?:پیشنهاد|پول|معامله|قرارداد).*(?:رد|قبول\s*نمی|نمی‌?پذیر)|(?:تابلو|بوم).*(?:نمی‌?فروش|واگذار\s*نمی)/.test(raw)
+    /(?:پیشنهاد|پول|معامله|قرارداد).*(?:(?:^|\s)رد(?:\s|$|می‌?کن|کرد)|قبول\s*نمی|نمی‌?پذیر)|(?:تابلو|بوم).*(?:نمی‌?فروش|واگذار\s*نمی)/.test(raw)
   ) {
     addCanonicalFlag(state, 'rejected_financial_offer');
     return {

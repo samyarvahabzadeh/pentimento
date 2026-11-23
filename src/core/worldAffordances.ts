@@ -665,7 +665,8 @@ export function findLocation(keyword: string): LocationDefinition | undefined {
   if (/(?:برمی‌?گرد(?:م|وم)|برگردم?)\s*(?:به\s*)?(?:سر\s*)?(?:جام|میزم|میز\s*قبلی|جای\s*قبلی(?:م)?)|(?:سر\s*)?(?:جام|میزم|جای\s*قبلی(?:م)?)\s*(?:می‌?ر(?:م|وم)|میرم)/.test(norm)) {
     return LOCATION_REGISTRY.scene_table5;
   }
-  if (/وارد.*(کافه|سالن)|داخل.*(کافه|سالن)|(?:می‌?ر(?:م|وم)|میرم|برم|می‌?آم|میام).*?(?:تو|داخل).*?(?:کافه|سالن)|پا.*(کافه|سالن)|گرمای.*سالن/.test(norm)) return LOCATION_REGISTRY.scene_table5;
+  const isOnlyDoorOperation = !/(?:وارد|ورود(?!ی)|قدم|پا\s*به)/.test(norm) && /قفل|چفت|بستن|ببندم|می‌?بندم|کلید/.test(norm);
+  if (!isOnlyDoorOperation && (/(?:وارد|ورود(?!ی)|قدم|رفتن|برم|میرم|می‌?ر(?:م|وم)).*?(?:به\s*)?(?:داخل|توی?)?.*?(?:کافه|سالن)|داخل.*(کافه|سالن)|(?:می‌?ر(?:م|وم)|میرم|برم|می‌?آم|میام).*?(?:تو|داخل).*?(?:کافه|سالن)|پا.*(کافه|سالن)|گرمای.*سالن/.test(norm))) return LOCATION_REGISTRY.scene_table5;
   if (/(?:از\s+کافه\s+(?:خارج|بیرون)|خارج\s+(?:از\s+)?کافه|بیرون\s+(?:از\s+)?کافه)|(?:می‌?ر(?:م|وم)|میرم|برمی‌?گرد(?:م|وم)|برگردم?)\s*(?:توی?|به\s+)?کوچه|سمت.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_entrance;
   if (/collector|کلکسیونر|خریدار|نماینده.*خریدار|ملاقات.*خریدار|جلسه.*پلاک|مذاکره/.test(norm)) return LOCATION_REGISTRY.scene_collector_meeting;
   if (/archive|آرشیو|میز.*(شواهد|آرشیو)|سنتز.*شواهد/.test(norm)) return LOCATION_REGISTRY.scene_archive;
@@ -675,7 +676,7 @@ export function findLocation(keyword: string): LocationDefinition | undefined {
   if (/office|salar|دفتر|حسابداری|اتاق.*سالار|مدیریت|پیش.*سالار/.test(norm)) return LOCATION_REGISTRY.scene_office;
   if (/storage|انبار|کارتن/.test(norm)) return LOCATION_REGISTRY.scene_storage;
   if (/counter|barista|yashin|mani|کانتر|پیشخوان|باریستا|دم\s*بار|پشت\s*بار|بخش\s*بار|(?:^|\s)بار(?:$|[،,\s])|پیش.*یاشین|پیش.*مانی|پیش.*باریستا/.test(norm)) return LOCATION_REGISTRY.scene_counter;
-  if (/table5|wooden_chair|table5_cup|table5_saucer|میز\s*۵|میز\s*پنج|(?:^|\s)سالن(?:$|[،,\s])|پیش.*حانیه|پیش.*پنتی|پیش.*گربه/.test(norm)) return LOCATION_REGISTRY.scene_table5;
+  if (/table5|wooden_chair|table5_cup|table5_saucer|میز\s*(?:شمارهٔ?|شماره\s*)?(?:۵|5|پنج)|(?:^|\s)سالن(?:$|[،,\s])|پیش.*حانیه|پیش.*پنتی|پیش.*گربه/.test(norm)) return LOCATION_REGISTRY.scene_table5;
   if (/cctv|دوربین|مانیتورینگ|حراست/.test(norm)) return LOCATION_REGISTRY.scene_cctv;
   if (/hosseini|کوچه.*حسینی|تاریکی.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_hosseini_alley;
   if (/entrance|door|cafe_door|ورودی|کوچه|بیرون/.test(norm) || hasStandaloneLexeme(norm, 'در')) {
