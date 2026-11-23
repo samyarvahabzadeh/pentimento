@@ -343,7 +343,7 @@ export function solveSemanticAction(
 
   if (
     targetObj?.inspectionProfile &&
-    !['follow', 'move'].includes(p) &&
+    !['follow', 'move', 'improvise'].includes(p) &&
     !isWorldObjectAccessible(targetObj, state)
   ) {
     return {
@@ -1142,7 +1142,7 @@ export function solveSemanticAction(
       };
     }
     return {
-      narrative: 'نیتت قابل فهم است، اما هنوز کنش اجرایی روشنی ندارد. بگو از چه ابزار، شخص یا بخش صحنه استفاده می‌کنی تا جهان بتواند نتیجه و هزینه‌اش را تعیین کند.',
+      narrative: 'در این لحظه نگاهی به اطراف می‌اندازی؛ برای پیشبرد کار می‌توانی با افراد حاضر صحبت کنی، نشانه‌های محیط را بررسی کنی یا ابزار و مدارک موجود را به کار بگیری.',
       acceptedEffects: [],
       isSuccess: false,
       reasonIfFailed: 'improvisation_needs_concrete_method',
@@ -1178,9 +1178,26 @@ export function solveSemanticAction(
   }
 
   // 2i. Default Grounded Diegetic Interaction
-  const targetLabel = targetObj ? targetObj.nameFa : (targetKey || 'محیط اطراف');
+  if (targetObj) {
+    return {
+      narrative: `نگاهی دقیق به ${targetObj.nameFa} می‌اندازی و جزئیات ظاهری‌اش را زیر نظر می‌گیری.`,
+      acceptedEffects: effects,
+      isSuccess: true,
+    };
+  }
+
+  const scene = state.canonical.currentScene || state.scene.sceneId;
+  const sceneDescriptions: Record<string, string> = {
+    scene_table5: 'نگاهی به فضای اطراف میز ۵ و سالن کافه می‌اندازی. میزهای چوبی در سکوت نیمه‌شب چیده شده‌اند؛ فنجان رهاشده روی میز پنج و ردّ عجله‌ای که در هوای کافه مانده، جلب توجه می‌کند.',
+    scene_counter: 'فضای اطراف پیشخوان و بخش بار را از نظر می‌گذرانی. بخار دستگاه اسپرسوساز، ردیف ماگ‌ها و سیستم صندوق در نور ملایم چراغ‌های سقفی دیده می‌شوند.',
+    scene_entrance: 'هوای سرد زمستانی در آستانهٔ درِ ورودی حس می‌شود. قطرات باران روی شیشه نشسته و سنگ‌فرش کوچه در تاریکی برق می‌زند.',
+    scene_office: 'اتاق کار سالار با دیوارهایی از زونکن‌های بایگانی و پوشه‌های مالی احاطه شده است. میز تحریر شلوغ و نور چراغ مطالعه فضای سنگین و محرمانه‌ای ایجاد کرده است.',
+    scene_cctv: 'مانیتورهای سامانهٔ نظارتی تصاویر کوچه، ورودی و سالن را پخش می‌کنند؛ نور آبی مانیتورها روی کنسول افتاده است.',
+    scene_gallery: 'دیوارهای بخش گالری زیر تابش نورافکن‌های موضعی قرار دارند؛ بوم نقاشی رنگ‌روغن پنتیمنتو در مرکز دیوار جلوه‌گری می‌کند.',
+  };
+
   return {
-    narrative: `با دقت ${targetLabel} را بررسی می‌کنی و وضعیت صحنه را زیر نظر می‌گیری. نشانه‌های کلیدی با دقت بیشتری در ذهنت ثبت می‌شوند.`,
+    narrative: sceneDescriptions[scene] ?? 'دقایقی محیط اطرافت را زیر نظر می‌گیری و جزئیات فضا و حضور آدم‌ها را در سکوت بررسی می‌کنی.',
     acceptedEffects: effects,
     isSuccess: true,
   };

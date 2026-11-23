@@ -49,6 +49,11 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   const explicitConversation = /(?:^|[،,\s])(?:سلام|درود|خسته\s*نباشید|شب\s*بخیر|ممنون|مرسی|متشکرم)(?:$|[،,!\s])|می‌?(?:گم|گویم)|میگم|زنگ\s*می‌?زن|تماس\s*می‌?گیر|پیام\s*می‌?(?:دم|دهم)/.test(norm);
   const explicitReport = /به\s+(?:سالار|صالحی|حانیه|یاشین|مانی|کلکسیونر|خریدار).*?(?:می‌?گم|میگم|می‌?گویم|توضیح\s*می‌?(?:دم|دهم)|خبر\s*می‌?(?:دم|دهم)).*(?:کردم|گفتم|شنیدم|دیدم|فهمید|بود|شد|رفت)/.test(norm);
   const orderRequest = /سفارش\s*می‌?(?:دم|دهم)|(?:قهوه|اسپرسو|نوشیدنی).*(?:می‌?خوام|می‌?خواهم|بیار|لطفا)|(?:یه|یک)\s*(?:قهوه|اسپرسو).*(?:سفارش|می‌?خوام|می‌?خواهم)/.test(norm);
+  const isPhysicalInspectionQuery = (
+    /نگاه|بررسی|وارسی|چک|دیدن|سرک|می‌?خوانم|بخوان|خواندن/.test(norm) &&
+    !/(?:از|رو\s*به|به\s*سمت|خطاب\s*به)\s*(?:سالار|یاشین|مانی|حانیه|کلکسیونر|خریدار|مرد\s*پالتو)/.test(norm) &&
+    !/می‌?پرسم|میپرسم|سؤال|سوال|سلام|درود/.test(norm)
+  );
 
   const hasMovementIntent = (
     /(?:می‌?ر(?:م|وم)|میرم|می‌?(?:آ|ا)م|میام|حرکت\s*می‌?|قدم\s*برمی‌?|وارد\s*(?:می‌?|ش)|خارج\s*(?:می‌?|ش)|برمی‌?گرد)/.test(norm) ||
@@ -81,7 +86,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     confidence = 0.99;
   } else if (explicitPersuasion) {
     primitive = 'persuade';
-  } else if (explicitQuestion || explicitConversation || orderRequest) {
+  } else if (!isPhysicalInspectionQuery && (explicitQuestion || explicitConversation || orderRequest)) {
     primitive = 'ask';
   } else if (hasStandaloneLexeme(norm, 'مشت') || /لگد|سیلی|حمله|می‌?زنمش|بزنمش|هلش|گلاویز|یقه.*می‌?گیر/.test(norm)) {
     primitive = 'damage';
@@ -189,41 +194,51 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     if (id === 'exiting_man' && /مرد.*(?:پالتو|دستکش)|پالتوپوش/.test(norm)) return true;
     return false;
   });
+  const presentEntityIds = (state.scene?.activeEntityIds ?? []).map(id => id.replace('_salehi', ''));
   let addressedNpc: string | undefined;
   const addressPrefix = '(?:رو\\s*به|به\\s*سمت|خطاب\\s*به|با|از|به|پیش)\\s+(?:آقا(?:ی)?\\s+|خانم\\s+)?';
-  if (new RegExp(`${addressPrefix}حانیه|حانیه\\s*جان`).test(norm)) addressedNpc = 'haniyeh';
+  if (new RegExp(`${addressPrefix}حانیه|حانیه\\s*جان`).test(norm) || (presentEntityIds.includes('haniyeh') && /(?:^|[،,\s])(?:خانم|خانومی|دختر)(?:[،,!\s]|$)/.test(norm))) addressedNpc = 'haniyeh';
   else if (new RegExp(`${addressPrefix}سالار|سالار\\s*جان`).test(norm)) addressedNpc = 'salar';
-  else if (new RegExp(`${addressPrefix}یاشین|یاشین\\s*جان`).test(norm)) addressedNpc = 'yashin';
+  else if (new RegExp(`${addressPrefix}یاشین|یاشین\\s*جان`).test(norm) || (presentEntityIds.includes('yashin') && /(?:^|[،,\s])(?:بچه‌?ها|باریستا|شماها)(?:[،,!\s]|$)/.test(norm))) addressedNpc = 'yashin';
   else if (new RegExp(`${addressPrefix}مانی|مانی\\s*جان`).test(norm)) addressedNpc = 'mani';
   else if (new RegExp(`${addressPrefix}(?:کلکسیونر|خریدار|نماینده)`).test(norm)) addressedNpc = 'collector';
   else if (new RegExp(`${addressPrefix}(?:مرد\\s*پالتوپوش|مرد\\s*پالتو|مرد)`).test(norm)) addressedNpc = 'exiting_man';
 
   if (!addressedNpc && orderRequest) {
-    const present = state.scene?.activeEntityIds ?? [];
-    if (present.includes('yashin')) addressedNpc = 'yashin';
-    else if (present.includes('haniyeh')) addressedNpc = 'haniyeh';
-    else if (present.includes('mani')) addressedNpc = 'mani';
+    if (presentEntityIds.includes('yashin')) addressedNpc = 'yashin';
+    else if (presentEntityIds.includes('haniyeh')) addressedNpc = 'haniyeh';
+    else if (presentEntityIds.includes('mani')) addressedNpc = 'mani';
   }
 
-  const presentEntityIds = (state.scene?.activeEntityIds ?? []).map(id => id.replace('_salehi', ''));
-  const matchedNpc = addressedNpc ?? (
-    mentionedNpcs.find(id => presentEntityIds.includes(id)) ?? mentionedNpcs[0]
-  );
-  if (matchedNpc) {
-    const isSocialAction = ['deceive', 'ask', 'threaten', 'accuse', 'give', 'persuade', 'distract'].includes(primitive);
+  const isSocialAction = ['deceive', 'ask', 'threaten', 'accuse', 'give', 'persuade', 'distract'].includes(primitive);
+  const isDocumentReading = primitive === 'inspect' && Boolean(matchedObj);
+  const presentMentionedNpc = mentionedNpcs.find(id => presentEntityIds.includes(id));
+
+  let matchedNpc = addressedNpc ?? presentMentionedNpc;
+  if (!matchedNpc && isSocialAction && !isDocumentReading) {
+    if (presentEntityIds.length === 1) {
+      matchedNpc = presentEntityIds[0];
+    } else if (mentionedNpcs.length > 0) {
+      matchedNpc = mentionedNpcs[0];
+    }
+  }
+
+  if (matchedNpc && !isDocumentReading) {
     if (isSocialAction || !target) {
       secondaryTarget = target ?? mentionedNpcs.find(id => id !== matchedNpc);
       target = matchedNpc;
     } else {
       secondaryTarget = matchedNpc;
     }
+  } else if (!secondaryTarget && mentionedNpcs.length > 0) {
+    secondaryTarget = mentionedNpcs[0];
   }
 
   // Resolve colloquial pronouns/questions against a single present actor.
   // This is scene grounding, not mind-reading: ambiguous crowds remain unset.
   const needsImplicitSocialAddressee = ['ask', 'persuade', 'deceive', 'threaten', 'accuse'].includes(primitive);
   const needsImplicitDamageTarget = primitive === 'damage' && !target;
-  const needsImplicitObservationTarget = primitive === 'inspect' && !target && /دست(?:‌|\s*)هاش|پالتوش|چهره(?:‌|\s*)ش|حالتش|رفتارش|خودش|واکنشش/.test(norm);
+  const needsImplicitObservationTarget = primitive === 'inspect' && !target && /دست(?:‌|\s*)هاش|پالتوش|چهره(?:‌|\s*)ش|حالتش|رفتارش|خودش|واکنشش/.test(norm) && !/زمین|افتاد|کف/.test(norm);
   if (!matchedNpc && (needsImplicitSocialAddressee || needsImplicitDamageTarget || needsImplicitObservationTarget)) {
     const knownNpcIds = new Set(npcIds);
     const presentNpcs = (state.scene?.activeEntityIds ?? [])

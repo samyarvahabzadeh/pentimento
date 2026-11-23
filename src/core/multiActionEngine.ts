@@ -17,6 +17,11 @@ export interface MultiActionResult {
 export function decomposeMultiActionInput(playerInput: string, state: RunState): SemanticAction[] {
   const norm = playerInput.trim();
 
+  // Character intake statements in Node 00 must never be decomposed
+  if (state.canonical?.currentNode === 'NODE_00') {
+    return [extractSemanticAction(norm, state)];
+  }
+
   // If input starts with a conditional ('اگر'), treat as a single conditional action unless explicitly chained with 'سپس' or 'بعد'
   if (/^اگر/.test(norm) && !/و\s*سپس|و\s*بعد/.test(norm)) {
     return [extractSemanticAction(norm, state)];

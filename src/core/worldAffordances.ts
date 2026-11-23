@@ -402,7 +402,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
         {
           id: 'ledger_lot55_invoice',
           primitives: ['inspect'],
-          inputPatterns: ['۵۵|55|R\\.?G|آر\\.?جی|فاکتور|برگه.*خاص|جست.*سند|کاور'],
+          inputPatterns: ['۵۵|55|R\\.?G|آر\\.?جی|فاکتور|برگه.*خاص|جست.*سند|کاور|برگه|کاغذ|خریدار|قرارداد|نوشته'],
           observation: 'با جست‌وجوی زونکن، برگه‌ای با متن «R.G. / Lot 55 / Returned» پیدا می‌کنی. متن سند ثبت می‌شود، اما اصالت یا علت بازگشت آن هنوز معلوم نیست.',
           evidenceIds: ['fact_invoice_text_rg_lot55_returned'],
           proofDomain: { domain: 'SYS', points: 1 },
@@ -599,7 +599,7 @@ export function findWorldObject(keyword: string, objects: Record<string, WorldOb
   }
   // Specific and ordered keyword mappings
   if (/مرد.*(پالتو|دستکش|خروج)|پالتوپوش|پالتوش|دست(?:‌|\s*)هاش|دستکش(?:ش|.*قرمز)/.test(norm)) return objects.exiting_man;
-  if (/زونکن|اسناد|سند|مدارک|دفتر.*حسابداری|دفتر.*مالی|فاکتور.*سالار|فاکتور.*پلاک|فاکتور/.test(norm)) return objects.office_ledger;
+  if (/زونکن|اسناد|سند|مدارک|دفتر.*حسابداری|دفتر.*مالی|فاکتور.*سالار|فاکتور.*پلاک|فاکتور|برگه.*میز|کاغذ.*میز|برگه‌ها|کاغذها|اسناد.*میز|نوشته.*میز/.test(norm)) return objects.office_ledger;
   if (/برچسب.*(پشت|مالکیت)|اعداد.*(برچسب|تابلو)|label/.test(norm)) return objects.painting_back_label;
   if (/پنتی|گربه|بچه‌گربه/.test(norm)) return objects.cat_penti;
   if (/تابلو|نقاشی|بوم|رنگ.*روغن|پنتیمنتو/.test(norm)) return objects.central_painting;
@@ -610,8 +610,9 @@ export function findWorldObject(keyword: string, objects: Record<string, WorldOb
   if (/نعلبکی|زیر.*فنجان/.test(norm)) return objects.table5_saucer;
   if (/پایه.*منو|منوی/.test(norm) || hasStandaloneLexeme(norm, 'منو')) return objects.table5_menu;
   if (/دوربین|cctv|مانیتور.*دوربین|تصاویر.*دوربین/.test(norm)) return objects.cctv_system;
-  if (/پوز|مانیتور.*پوز|لاگ|ثبت.*سفارش/.test(norm)) return objects.pos_terminal;
-  if (hasStandaloneLexeme(norm, 'رسید') || /فیش|کاغذ.*خیس|برگه.*خیس|نم‌کشیده|کف.*(?:پیاده‌رو|ورودی)|سنگ‌?فرش/.test(norm)) return objects.wet_receipt;
+  if (/پوز|مانیتور.*پوز|لاگ|ثبت.*سفارش|سیستم.*صندوق|کامپیوتر|سیستم/.test(norm) && !/کشو|دخل|قفل.*کشو/.test(norm)) return objects.pos_terminal;
+  if (hasStandaloneLexeme(norm, 'صندوق') && !/کشو|دخل|قفل/.test(norm)) return objects.pos_terminal;
+  if (hasStandaloneLexeme(norm, 'رسید') || /فیش|کاغذ.*خیس|برگه.*خیس|نم‌کشیده|کف.*(?:پیاده‌رو|ورودی)|سنگ‌?فرش|زمین|کف.*زمین|افتاده|چیزی.*افتاد/.test(norm)) return objects.wet_receipt;
   if (/نازل|لوله.*بخار/.test(norm)) return objects.steam_wand;
   if (/کانتر|پیشخوان|میز.*بار/.test(norm)) return objects.barista_counter;
   if (/صندلی|نیمکت/.test(norm)) return objects.wooden_chair;
