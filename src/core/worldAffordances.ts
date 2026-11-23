@@ -680,6 +680,10 @@ export function isLocationReachable(fromScene: string, targetScene: string): boo
       return true;
     }
   }
+  // Painting back transit through gallery to common cafe areas
+  if (from === 'scene_painting_back' && (target === 'scene_gallery' || targetLoc.reachableFrom.includes('scene_gallery'))) {
+    return true;
+  }
   return false;
 }
 

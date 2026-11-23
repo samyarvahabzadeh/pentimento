@@ -128,7 +128,7 @@ async function runComprehensiveSimulation() {
         const matchesNpc =
           trace?.target === turn.expectedNpc ||
           trace?.secondaryTarget === turn.expectedNpc ||
-          trace?.subtraces?.some(st => st.target === turn.expectedNpc || st.secondaryTarget === turn.expectedNpc);
+          trace?.subtraces?.some((st: any) => st.target === turn.expectedNpc || st.secondaryTarget === turn.expectedNpc);
         assert.ok(
           matchesNpc,
           `[${arc.name} T${i + 1}] Expected NPC ${turn.expectedNpc}, got target=${trace?.target}, secondary=${trace?.secondaryTarget}`
