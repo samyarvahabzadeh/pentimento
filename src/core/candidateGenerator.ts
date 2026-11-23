@@ -67,6 +67,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
       conversationalIntent === 'inventory_check' ||
       conversationalIntent === 'evidence_check' ||
       conversationalIntent === 'guidance_request' ||
+      conversationalIntent === 'map_request' ||
       (!hasMovementIntent && !hasNpcMention)
     )
   );

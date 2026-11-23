@@ -34,6 +34,14 @@ export const MEDIA_TRIGGERS: MediaTrigger[] = [
       before.canonical.currentNode === 'NODE_00' && after.canonical.currentNode === 'NODE_01',
   },
 
+  // 2b. Cafe Mini-Map (Node 02 entry)
+  {
+    mediaKey: 'media_mini_map',
+    filename: 'MINI_MAP.png',
+    condition: (before, after) =>
+      before.canonical.currentNode === 'NODE_01' && after.canonical.currentNode === 'NODE_02',
+  },
+
   // 3. Table 5, Red Cup & Hanieh with Penti (Node 02)
   {
     mediaKey: 'media_red_cup',
@@ -199,4 +207,9 @@ export function getCoverPath(): string | null {
   if (fs.existsSync(cover)) return cover;
   const entrance = path.join(MEDIA_DIR, 'BG_ENTRANCE.png');
   return fs.existsSync(entrance) ? entrance : null;
+}
+
+export function getMapPath(): string | null {
+  const map = path.join(MEDIA_DIR, 'MINI_MAP.png');
+  return fs.existsSync(map) ? map : null;
 }

@@ -10,7 +10,8 @@ export type ConversationalIntent =
   | 'situation_recap'
   | 'inventory_check'
   | 'evidence_check'
-  | 'guidance_request';
+  | 'guidance_request'
+  | 'map_request';
 
 export interface PlayerIdentityInterpretation {
   role: PlayerClassId;
@@ -52,6 +53,12 @@ export function classifyConversationalIntent(input: string): ConversationalInten
     /^(?:راهنما|کمک|راهنمایی)(?:$|[!؟?])|^(?:الان\s*)?(?:چی|چه)\s*کار\s*(?:می‌?تونم|کنم|باید\s*بکنم)(?:$|[؟?])|^(?:الان\s*)?چه\s*کاری\s*(?:می‌?شه|می‌?تونم)\s*کرد(?:$|[؟?])|^چیکار\s*کنم(?:$|[؟?])/.test(norm)
   ) {
     return 'guidance_request';
+  }
+
+  if (
+    /^(?:نقشه|پلان|کروکی|نقشه\s*کافه|نقشه\s*کجاست|دیدن\s*نقشه|نقشه\s*رو\s*نشون\s*بده)(?:$|[؟?.!])/.test(norm)
+  ) {
+    return 'map_request';
   }
 
   if (
@@ -288,6 +295,26 @@ export function renderSceneOverview(state: RunState, intent: ConversationalInten
       default:
         return 'می‌توانی اشیای پیرامونت را دقیق‌تر وارسی کنی، با افراد حاضر در صحنه وارد گفت‌وگو شوی، یا به بخش‌های دیگر کافه حرکت کنی.';
     }
+  }
+
+  if (intent === 'map_request') {
+    const loc = LOCATION_REGISTRY[sceneId]?.nameFa ?? 'موقعیت فعلی';
+    return [
+      '🗺️ نقشهٔ راهنمای کافه پنتیمنتو (پلاک ۵۵):',
+      '',
+      '┌───────────────┬──────────────────────┬────────────────┐',
+      '│  انبار کارتن  │ دیوار گالری (تابلو)  │  آرشیو و خریدار│',
+      '├───────────────┼──────────────────────┼────────────────┤',
+      '│  پیشخوان / بار│  سالن اصلی (میز ۵)   │  اتاق سالار    │',
+      '└───────────────┴──────────┬───────────┴───────┬────────┘',
+      '                           │                   │',
+      '                  [ورودی / کوچه حسینی]    [دوربین‌ها / CCTV]',
+      '',
+      `📍 موقعیت فعلی تو: ${loc}`,
+      '',
+      '💡 برای دیدن نقشهٔ تصویری رنگی و باکیفیت، دستور /map را بزن.',
+      '🚶‍♂️ برای رفتن به هر بخش بنویس: «میرم [نام بخش]»',
+    ].join('\n');
   }
 
   const isRecap = intent === 'situation_recap';

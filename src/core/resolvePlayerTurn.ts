@@ -246,6 +246,7 @@ export async function resolvePlayerTurn(
       conversationalIntent === 'inventory_check' ||
       conversationalIntent === 'evidence_check' ||
       conversationalIntent === 'guidance_request' ||
+      conversationalIntent === 'map_request' ||
       (semantic.primitive === 'inspect' && semantic.target === 'scene_overview')
     )
   );
@@ -500,7 +501,9 @@ export async function resolvePlayerTurn(
               ? { id: 'EVIDENCE_CHECK', summary: 'بررسی شواهد و سرنخ‌های ثبت‌شده' }
               : conversationalIntent === 'guidance_request'
                 ? { id: 'GUIDANCE_REQUEST', summary: 'راهنمایی کنش‌های قابل‌انجام در صحنه' }
-                : { id: 'SCENE_OVERVIEW', summary: 'دیدن صحنهٔ فعلی' };
+                : conversationalIntent === 'map_request'
+                  ? { id: 'MAP_REQUEST', summary: 'مشاهدهٔ نقشهٔ فضایی کافه' }
+                  : { id: 'SCENE_OVERVIEW', summary: 'دیدن صحنهٔ فعلی' };
     selectedCandidate = makeSyntheticCandidate(
       conversationalCandidate.id,
       'inspect',

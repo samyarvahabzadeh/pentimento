@@ -15,7 +15,7 @@ import {
   revokeAccess,
 } from '../storage/db.js';
 import { ROLE_SELECTION_PROMPT } from '../canon/node00.js';
-import { getCoverPath, getPendingMediaForTurn } from './mediaDispatcher.js';
+import { getCoverPath, getMapPath, getPendingMediaForTurn } from './mediaDispatcher.js';
 import { createInitialRunState } from '../core/initialState.js';
 import type { RunState } from '../core/types.js';
 import { computeBuildAttestation } from '../core/buildAttestation.js';
@@ -197,6 +197,23 @@ bot.command('where', async (ctx) => {
     return;
   }
   await ctx.reply(buildWherePanel(record.state));
+});
+
+bot.command('map', async (ctx) => {
+  const userId = ctx.from?.id?.toString();
+  if (!userId || !(await ensureAuthorized(ctx))) return;
+  const mapPath = getMapPath();
+  if (mapPath) {
+    try {
+      await ctx.replyWithPhoto(new InputFile(mapPath), {
+        caption: '🗺️ نقشهٔ راهنمای کافه پنتیمنتو (پلاک ۵۵)\nبرای حرکت به هر بخش بنویس: «میرم [نام بخش]»',
+      });
+      return;
+    } catch (e: any) {
+      console.error('[Bot] Error sending map photo:', e.message);
+    }
+  }
+  await ctx.reply('نقشهٔ تصویری در دسترس نیست.');
 });
 
 bot.command('recap', async (ctx) => {
@@ -447,6 +464,15 @@ bot.on('message:text', async (ctx) => {
           } catch (e: any) {
             console.error('[Bot] Error sending turn photo:', e.message);
           }
+        } else if ((result.validation.acceptedActionId as any) === 'MAP_REQUEST') {
+          const mapPath = getMapPath();
+          if (mapPath) {
+            try {
+              await ctx.replyWithPhoto(new InputFile(mapPath));
+            } catch (e: any) {
+              console.error('[Bot] Error sending map photo:', e.message);
+            }
+          }
         }
 
         await safeReply(ctx, reply, {
@@ -477,6 +503,7 @@ async function configurePlayerCommands(): Promise<void> {
     { command: 'start', description: 'ورود یا ادامهٔ اجرای ذخیره‌شده' },
     { command: 'continue', description: 'ادامهٔ ماجرا بدون پاک شدن پیشرفت' },
     { command: 'where', description: 'دیدن موقعیت فعلی بدون گذشت زمان' },
+    { command: 'map', description: 'دیدن نقشهٔ تصویری کافه و مسیرها' },
     { command: 'recap', description: 'یادآوری یافته‌ها و وضعیت فعلی' },
     { command: 'help', description: 'راهنمای بازی آزاد' },
     { command: 'restart', description: 'پاک کردن اجرا و شروع دوباره' },
