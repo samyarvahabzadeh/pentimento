@@ -95,7 +95,7 @@ function firstFlag(state: RunState, flag: string): string[] {
  * claims are explicitly framed as character claims.
  */
 function evaluateYashinPersonalVoice(raw: string, state: RunState): NpcReactionResult | undefined {
-  if (/فیفا|fifa|پلی\s*استیشن|پلی‌استیشن|کنسول|بازی\s*فوتبال/.test(raw)) {
+  if (/فیفا|fifa|پلی\s*استیشن|پلی‌استیشن|کنسول|بازی\s*فوتبال|باخت|باختی|دسته|دیشب.*مانی/.test(raw)) {
     return {
       responseProse: 'یاشین لبخند مطمئنی می‌زند و آستینش را صاف می‌کند: «خیر. سؤال درست این نیست که من توی فیفا خوبم یا نه؛ سؤال اینه که شما تا دقیقهٔ چند می‌تونید جلوی من نتیجه رو نگه دارید. مانی هنوز باخت قبلیش رو گردنِ لگ می‌اندازه.» این فقط ادعای خود یاشین دربارهٔ خودش است؛ هیچ چیزی از پرونده را ثابت نمی‌کند.',
       suspicionDelta: 0,
@@ -237,7 +237,7 @@ export function evaluateNpcReaction(
       return { responseProse: greetings[npcId] ?? `${profile.nameFa} سلام کوتاهی می‌کند.`, suspicionDelta: 0, trustDelta: 0 };
     }
 
-    const isDrinkOrder = /سفارش|(?:یه|یک)\s*(?:قهوه|اسپرسو)|(?:قهوه|اسپرسو).*(?:می‌?خوام|می‌?خواهم|بیار)/.test(raw);
+    const isDrinkOrder = /سفارش|(?:یه|یک)\s*(?:قهوه|اسپرسو|امریکانو|نوشیدنی|فنجون|فنجان)|(?:قهوه|اسپرسو).*(?:می‌?خوام|می‌?خواهم|بیار|بزن|بریز|بده|درست\s*کن|آماده\s*کن)/.test(raw);
     if (isDrinkOrder && ['haniyeh', 'yashin', 'mani'].includes(npcId)) {
       const orderResponses: Record<string, string> = {
         haniyeh: 'حانیه سفارش را روی تبلت ثبت می‌کند: «یه اسپرسو؛ چشم. فقط اون فنجون روی میز پنج سفارش تو نیست—بهش دست نزن تا یاشین سفارشت رو بیاره.» بعد یک نعلبکی تمیز را کنار دست راستت می‌گذارد تا دو سفارش با هم قاطی نشوند.',

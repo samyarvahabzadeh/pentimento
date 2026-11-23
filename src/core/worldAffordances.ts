@@ -286,7 +286,7 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
         {
           id: 'cctv_timeline_gap',
           primitives: ['inspect', 'use'],
-          inputPatterns: ['لاگ|تایم.*لاین|زمان|ضبط|فایل|آرشیو|هفت|7'],
+          inputPatterns: ['لاگ|تایم.*لاین|زمان|ضبط|فایل|آرشیو|هفت|7|فیلم|تصاویر|عقب|ساعت|۱۲|12|بازبینی|ویدیو'],
           observation: 'در خط زمانی ضبط، میان ۰۰:۱۱ و ۰۰:۱۷ یک بازهٔ بدون تصویر دیده می‌شود. این فعلاً یک شکاف در خروجی است، نه اثبات حذف عمدی.',
           evidenceIds: ['fact_camera_time_gap'],
           proofDomain: { domain: 'SYS', points: 1 },
@@ -460,6 +460,26 @@ export const INITIAL_WORLD_OBJECTS: Record<string, WorldObject> = {
       ],
     },
   },
+  storage_box_clean: {
+    id: 'storage_box_clean',
+    nameFa: 'جعبه تمیز روی قفسه انبار',
+    properties: ['movable', 'container', 'solid'],
+    affordances: ['inspect', 'use', 'take'],
+    state: { location: 'scene_storage', isOpen: false },
+    inspectionProfile: {
+      defaultObservation: 'در میان کارتن‌های خاک‌گرفته روی قفسه انبار، یک جعبه قرار دارد که به شکل غیرعادی تمیز و عاری از لایهٔ غبار محیط است. نشان می‌دهد اخیراً جابه‌جا یا جایگزین شده است.',
+      discoveries: [
+        {
+          id: 'storage_box_clean_evidence',
+          primitives: ['inspect', 'use'],
+          inputPatterns: ['جعبه|کارتن|قفسه|تمیز|غبار|خاک|بررسی|باز|داخل|جابه‌?جا|قوطی'],
+          observation: 'جعبه تمیز را بررسی می‌کنی؛ روی مقوای آن اثری از لایه کهنه خاک نیست و بوی چسب بسته‌بندی تازه از لبه‌هایش می‌آید. این جعبه به تازگی به این قفسه منتقل شده است.',
+          evidenceIds: ['fact_unusually_clean_box', 'fact_clean_box_swap'],
+          proofDomain: { domain: 'SYS', points: 1 },
+        },
+      ],
+    },
+  },
 };
 
 export const LOCATION_REGISTRY: Record<string, LocationDefinition> = {
@@ -528,10 +548,10 @@ export const LOCATION_REGISTRY: Record<string, LocationDefinition> = {
     nameFa: 'انبار کارتن‌ها و بسته‌بندی',
     sceneId: 'scene_storage',
     nodeId: 'NODE_08',
-    reachableFrom: ['scene_gallery', 'scene_counter'],
+    reachableFrom: ['scene_gallery', 'scene_counter', 'scene_table5'],
     defaultDescription: 'وارد انبار کارتن‌ها و بسته‌های بسته‌بندی در انتهای راهرو می‌شوی.',
     activeEntityIds: [],
-    visibleObjectIds: [],
+    visibleObjectIds: ['storage_box_clean'],
   },
   scene_cctv: {
     id: 'scene_cctv',
@@ -589,7 +609,7 @@ export function createInitialWorldObjects(): Record<string, WorldObject> {
   return JSON.parse(JSON.stringify(INITIAL_WORLD_OBJECTS));
 }
 
-export function findWorldObject(keyword: string, objects: Record<string, WorldObject>): WorldObject | undefined {
+export function findWorldObject(keyword: string, objects: Record<string, WorldObject> = INITIAL_WORLD_OBJECTS): WorldObject | undefined {
   const norm = keyword.trim().toLowerCase();
   if (!norm) return undefined;
   for (const obj of Object.values(objects)) {
@@ -599,9 +619,10 @@ export function findWorldObject(keyword: string, objects: Record<string, WorldOb
   }
   // Specific and ordered keyword mappings
   if (/مرد.*(پالتو|دستکش|خروج)|پالتوپوش|پالتوش|دست(?:‌|\s*)هاش|دستکش(?:ش|.*قرمز)/.test(norm)) return objects.exiting_man;
-  if (/زونکن|اسناد|سند|مدارک|دفتر.*حسابداری|دفتر.*مالی|فاکتور.*سالار|فاکتور.*پلاک|فاکتور|برگه.*میز|کاغذ.*میز|برگه‌ها|کاغذها|اسناد.*میز|نوشته.*میز/.test(norm)) return objects.office_ledger;
+  if (!/میز\s*(?:۵|5|پنج)/.test(norm) && (/زونکن|اسناد|سند|مدارک|دفتر.*حسابداری|دفتر.*مالی|فاکتور.*سالار|فاکتور.*پلاک|فاکتور|برگه.*میز|کاغذ.*میز|برگه‌ها|کاغذها|اسناد.*میز|نوشته.*میز|میز.*(سالار|کار|دفتر|حسابداری)|(کشو|روی|زیر).*میز.*(سالار|کار|دفتر|حسابداری)/.test(norm) || (/میز.*(می‌?گردم|بگردم|وارسی|ببینم)/.test(norm) && !/میز\s*(?:۵|5|پنج)/.test(norm)))) return objects.office_ledger;
   if (/برچسب.*(پشت|مالکیت)|اعداد.*(برچسب|تابلو)|label/.test(norm)) return objects.painting_back_label;
   if (/پنتی|گربه|بچه‌گربه/.test(norm)) return objects.cat_penti;
+  if (/جعبه.*(تمیز|انبار|قفسه)|کارتن.*(تمیز|انبار)|قوطی.*(انبار|توی\s*انبار)|بسته‌?بندی.*انبار|storage_box/.test(norm)) return objects.storage_box_clean;
   if (/تابلو|نقاشی|بوم|رنگ.*روغن|پنتیمنتو/.test(norm)) return objects.central_painting;
   // Specific machinery must be resolved before the generic "espresso" token
   // used for the cup, otherwise "espresso machine" targets the cup.
@@ -609,7 +630,7 @@ export function findWorldObject(keyword: string, objects: Record<string, WorldOb
   if (/فنجان|فنجون|اسپرسو|مایع.*فنجان/.test(norm) || hasStandaloneLexeme(norm, 'کاپ')) return objects.table5_cup;
   if (/نعلبکی|زیر.*فنجان/.test(norm)) return objects.table5_saucer;
   if (/پایه.*منو|منوی/.test(norm) || hasStandaloneLexeme(norm, 'منو')) return objects.table5_menu;
-  if (/دوربین|cctv|مانیتور.*دوربین|تصاویر.*دوربین/.test(norm)) return objects.cctv_system;
+  if (/دوربین|cctv|مانیتور.*دوربین|تصاویر.*(دوربین|ضبط)?|فیلم|ویدیو.*(دوربین|دیشب|ضبط)?|خط.*زمانی/.test(norm)) return objects.cctv_system;
   if (/پوز|مانیتور.*پوز|لاگ|ثبت.*سفارش|سیستم.*صندوق|کامپیوتر|سیستم/.test(norm) && !/کشو|دخل|قفل.*کشو/.test(norm)) return objects.pos_terminal;
   if (hasStandaloneLexeme(norm, 'صندوق') && !/کشو|دخل|قفل/.test(norm)) return objects.pos_terminal;
   if (hasStandaloneLexeme(norm, 'رسید') || /فیش|کاغذ.*خیس|برگه.*خیس|نم‌کشیده|کف.*(?:پیاده‌رو|ورودی)|سنگ‌?فرش|زمین|کف.*زمین|افتاده|چیزی.*افتاد/.test(norm)) return objects.wet_receipt;
@@ -640,9 +661,9 @@ export function findLocation(keyword: string): LocationDefinition | undefined {
   if (/پشت.*(تابلو|بوم|قاب)|painting.*back|back.*label/.test(norm)) return LOCATION_REGISTRY.scene_painting_back;
   if (/gallery|painting|central_painting|گالری|دیوار.*گالری|تابلو|نقاشی/.test(norm)) return LOCATION_REGISTRY.scene_gallery;
   if (/office|salar|دفتر|حسابداری|اتاق.*سالار|مدیریت/.test(norm)) return LOCATION_REGISTRY.scene_office;
-  if (/counter|barista|yashin|mani|کانتر|پیشخوان|بار|پیش.*یاشین|پیش.*مانی/.test(norm)) return LOCATION_REGISTRY.scene_counter;
-  if (/table5|wooden_chair|table5_cup|table5_saucer|میز\s*۵|میز\s*پنج|سالن/.test(norm)) return LOCATION_REGISTRY.scene_table5;
   if (/storage|انبار|کارتن/.test(norm)) return LOCATION_REGISTRY.scene_storage;
+  if (/counter|barista|yashin|mani|کانتر|پیشخوان|دم\s*بار|پشت\s*بار|بخش\s*بار|(?:^|\s)بار(?:$|[،,\s])|پیش.*یاشین|پیش.*مانی/.test(norm)) return LOCATION_REGISTRY.scene_counter;
+  if (/table5|wooden_chair|table5_cup|table5_saucer|میز\s*۵|میز\s*پنج|سالن/.test(norm)) return LOCATION_REGISTRY.scene_table5;
   if (/cctv|دوربین|مانیتورینگ|حراست/.test(norm)) return LOCATION_REGISTRY.scene_cctv;
   if (/hosseini|کوچه.*حسینی|تاریکی.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_hosseini_alley;
   if (/collector|کلکسیونر|نماینده.*خریدار|ملاقات.*خریدار|جلسه.*پلاک/.test(norm)) return LOCATION_REGISTRY.scene_collector_meeting;

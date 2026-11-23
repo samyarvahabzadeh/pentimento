@@ -48,7 +48,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   const explicitThreat = /اگه.*(?:نگی|نکنی)|اگر.*(?:نگویی|نکنی)|وگرنه|تهدید|گشت.*تماس|تماس.*گشت|پلیس.*(?:خبر|تماس)|بهتره.*(?:جواب|بگی)/.test(norm);
   const explicitConversation = /(?:^|[،,\s])(?:سلام|درود|خسته\s*نباشی(?:د)?|شب\s*بخیر|صبح\s*بخیر|ممنون|مرسی|متشکرم)(?:$|[،,!\s])|می‌?(?:گم|گویم|گفت)|میگم|میگفت|زنگ\s*می‌?زن|تماس\s*می‌?گیر|پیام\s*می‌?(?:دم|دهم)/.test(norm);
   const explicitReport = /به\s+(?:سالار|صالحی|حانیه|یاشین|مانی|کلکسیونر|خریدار).*?(?:می‌?گم|میگم|می‌?گویم|توضیح\s*می‌?(?:دم|دهم)|خبر\s*می‌?(?:دم|دهم)).*(?:کردم|گفتم|شنیدم|دیدم|فهمید|بود|شد|رفت)/.test(norm);
-  const orderRequest = /سفارش\s*می‌?(?:دم|دهم)|(?:قهوه|اسپرسو|نوشیدنی).*(?:می‌?خوام|می‌?خواهم|بیار|لطفا)|(?:یه|یک)\s*(?:قهوه|اسپرسو).*(?:سفارش|می‌?خوام|می‌?خواهم)/.test(norm);
+  const orderRequest = /سفارش|(?:قهوه|اسپرسو|امریکانو|کاپوچینو|لاته|چای|دم‌?نوش|نوشیدنی).*(?:می‌?خوام|می‌?خواهم|بیار|لطفا|بزن|بریز|بده|درست\s*کن|آماده\s*کن)|(?:یه|یک)\s*(?:قهوه|اسپرسو|امریکانو|نوشیدنی|فنجون|فنجان)/.test(norm);
   const isPhysicalInspectionQuery = (
     /نگاه|بررسی|وارسی|چک|دیدن|سرک|می‌?خوانم|بخوان|خواندن/.test(norm) &&
     !/(?:از|رو\s*به|به\s*سمت|خطاب\s*به)\s*(?:سالار|یاشین|مانی|حانیه|کلکسیونر|خریدار|مرد\s*پالتو)/.test(norm) &&
@@ -71,7 +71,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   // 1. Generic Primitive Extraction
   // Explicit speech framing wins over action words inside the topic.  Asking
   // Salar why he "hid" a contract is an ask, not an attempt to hide Salar.
-  if (state.canonical?.currentNode === 'NODE_00' && isPlayerIdentityDeclaration(norm)) {
+  if (state?.canonical?.currentNode === 'NODE_00' && isPlayerIdentityDeclaration(norm)) {
     primitive = 'improvise';
     confidence = 0.99;
   } else if (explicitReport) {
@@ -160,14 +160,14 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     primitive = 'accuse';
   } else if (/گوش\s*(?:می‌?دهم|می‌?دم|می‌?کنم|دادن|بسپار)|صدا.*(بشنوم|بشنو)|شنود|استراق|شنیدن/.test(norm)) {
     primitive = 'listen';
-  } else if (/نگاه|بررسی|مشاهده|چک|دیدن|وارسی|مقایسه|تطبیق|فراخوان|باز.*(زونکن|فاکتور|پرونده|سند|گزارش|لاگ)|(زونکن|فاکتور|پرونده|سند|گزارش|لاگ).*(باز|ورق)|نور.*(بتاب|می‌?تابان|مورب|مایل|زاویه|هدایت)|می‌?خوانم|بخوان|خواندن|قرائت/.test(norm)) {
+  } else if (/نگاه|بررسی|مشاهده|چک|دیدن|وارسی|مقایسه|تطبیق|فراخوان|بازبینی|مرور|پخش|عقب.*(زدن|می‌?زن|بزن|برگردون|ببر)|جست‌?وجو|می‌?گردم|بگردم|باز.*(زونکن|فاکتور|پرونده|سند|گزارش|لاگ)|(زونکن|فاکتور|پرونده|سند|گزارش|لاگ).*(باز|ورق)|نور.*(بتاب|می‌?تابان|مورب|مایل|زاویه|هدایت)|می‌?خوانم|بخوان|خواندن|قرائت/.test(norm)) {
     primitive = 'inspect';
   } else {
     primitive = 'improvise';
   }
 
   // 2. Detect Target from World Objects & NPCs
-  const worldObjects = state.worldObjects || INITIAL_WORLD_OBJECTS;
+  const worldObjects = state?.worldObjects || INITIAL_WORLD_OBJECTS;
   const matchedObj = findWorldObject(norm, worldObjects);
   if (matchedObj && target !== 'scene_overview') {
     target = matchedObj.id;
@@ -194,7 +194,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     if (id === 'exiting_man' && /مرد.*(?:پالتو|دستکش)|پالتوپوش/.test(norm)) return true;
     return false;
   });
-  const presentEntityIds = (state.scene?.activeEntityIds ?? []).map(id => id.replace('_salehi', ''));
+  const presentEntityIds = (state?.scene?.activeEntityIds ?? []).map(id => id.replace('_salehi', ''));
   let addressedNpc: string | undefined;
   const addressPrefix = '(?:(?:رو\\s*به|به\\s*سمت|خطاب\\s*به|با|از|به|پیش)\\s+(?:آقا(?:ی)?\\s+|خانم\\s+)?|^(?:\\s)*(?:سلام|درود|خسته\\s*نباشید|هی)?(?:[،,!\\s])*)';
   if (new RegExp(`${addressPrefix}حانیه(?:[،,!\\s]|\\s*جان|$)`).test(norm) || (presentEntityIds.includes('haniyeh') && /(?:^|[،,\s])(?:خانم|خانومی|دختر)(?:[،,!\s]|$)/.test(norm))) addressedNpc = 'haniyeh';
