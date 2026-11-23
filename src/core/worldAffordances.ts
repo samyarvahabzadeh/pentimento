@@ -658,17 +658,17 @@ export function findLocation(keyword: string): LocationDefinition | undefined {
   // semantic target is the door handle.
   if (/وارد.*(کافه|سالن)|داخل.*(کافه|سالن)|(?:می‌?ر(?:م|وم)|میرم|برم|می‌?آم|میام).*?(?:تو|داخل).*?(?:کافه|سالن)|پا.*(کافه|سالن)|گرمای.*سالن/.test(norm)) return LOCATION_REGISTRY.scene_table5;
   if (/(?:از\s+کافه\s+خارج|خارج\s+(?:از\s+)?کافه|بیرون\s+(?:از\s+)?کافه)|برگرد.*کوچه|سمت.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_entrance;
+  if (/collector|کلکسیونر|خریدار|نماینده.*خریدار|ملاقات.*خریدار|جلسه.*پلاک|مذاکره/.test(norm)) return LOCATION_REGISTRY.scene_collector_meeting;
+  if (/archive|آرشیو|میز.*(شواهد|آرشیو)|سنتز.*شواهد/.test(norm)) return LOCATION_REGISTRY.scene_archive;
+  if (/underpainting|لایه.*(نهایی|زیرین)|لایه‌های\s*زیرین|زیرین.*تابلو|نقاشی.*زیرین|جمع.*بندی.*تابلو|افشای.*تاریخی/.test(norm)) return LOCATION_REGISTRY.scene_underpainting;
   if (/پشت.*(تابلو|بوم|قاب)|painting.*back|back.*label/.test(norm)) return LOCATION_REGISTRY.scene_painting_back;
   if (/gallery|painting|central_painting|گالری|دیوار.*گالری|تابلو|نقاشی/.test(norm)) return LOCATION_REGISTRY.scene_gallery;
   if (/office|salar|دفتر|حسابداری|اتاق.*سالار|مدیریت/.test(norm)) return LOCATION_REGISTRY.scene_office;
   if (/storage|انبار|کارتن/.test(norm)) return LOCATION_REGISTRY.scene_storage;
   if (/counter|barista|yashin|mani|کانتر|پیشخوان|دم\s*بار|پشت\s*بار|بخش\s*بار|(?:^|\s)بار(?:$|[،,\s])|پیش.*یاشین|پیش.*مانی/.test(norm)) return LOCATION_REGISTRY.scene_counter;
-  if (/table5|wooden_chair|table5_cup|table5_saucer|میز\s*۵|میز\s*پنج|سالن/.test(norm)) return LOCATION_REGISTRY.scene_table5;
+  if (/table5|wooden_chair|table5_cup|table5_saucer|میز\s*۵|میز\s*پنج|(?:^|\s)سالن(?:$|[،,\s])/.test(norm)) return LOCATION_REGISTRY.scene_table5;
   if (/cctv|دوربین|مانیتورینگ|حراست/.test(norm)) return LOCATION_REGISTRY.scene_cctv;
   if (/hosseini|کوچه.*حسینی|تاریکی.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_hosseini_alley;
-  if (/collector|کلکسیونر|نماینده.*خریدار|ملاقات.*خریدار|جلسه.*پلاک/.test(norm)) return LOCATION_REGISTRY.scene_collector_meeting;
-  if (/archive|آرشیو|میز.*شواهد|سنتز.*شواهد/.test(norm)) return LOCATION_REGISTRY.scene_archive;
-  if (/underpainting|لایه.*(نهایی|زیرین)|لایه‌های\s*زیرین|زیرین.*تابلو|نقاشی.*زیرین|جمع.*بندی.*تابلو|افشای.*تاریخی/.test(norm)) return LOCATION_REGISTRY.scene_underpainting;
   if (/entrance|door|cafe_door|ورودی|کوچه|بیرون/.test(norm) || hasStandaloneLexeme(norm, 'در')) {
     return LOCATION_REGISTRY.scene_entrance;
   }
