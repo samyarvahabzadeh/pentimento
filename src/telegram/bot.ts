@@ -285,6 +285,7 @@ bot.command('map', async (ctx) => {
     try {
       await ctx.replyWithPhoto(new InputFile(mapPath), {
         caption: buildMapCaption(state),
+        reply_markup: state ? getReplyMarkupForState(state) : undefined,
       });
       return;
     } catch (e: any) {
@@ -548,7 +549,9 @@ bot.on('message:text', async (ctx) => {
             try {
               await ctx.replyWithPhoto(new InputFile(mapPath), {
                 caption: buildMapCaption(result.stateAfter),
+                reply_markup: getReplyMarkupForState(result.stateAfter),
               });
+              return;
             } catch (e: any) {
               console.error('[Bot] Error sending map photo:', e.message);
             }
