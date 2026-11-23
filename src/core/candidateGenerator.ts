@@ -196,11 +196,11 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   });
   const presentEntityIds = (state.scene?.activeEntityIds ?? []).map(id => id.replace('_salehi', ''));
   let addressedNpc: string | undefined;
-  const addressPrefix = '(?:رو\\s*به|به\\s*سمت|خطاب\\s*به|با|از|به|پیش)\\s+(?:آقا(?:ی)?\\s+|خانم\\s+)?';
-  if (new RegExp(`${addressPrefix}حانیه|حانیه\\s*جان`).test(norm) || (presentEntityIds.includes('haniyeh') && /(?:^|[،,\s])(?:خانم|خانومی|دختر)(?:[،,!\s]|$)/.test(norm))) addressedNpc = 'haniyeh';
-  else if (new RegExp(`${addressPrefix}سالار|سالار\\s*جان`).test(norm)) addressedNpc = 'salar';
-  else if (new RegExp(`${addressPrefix}یاشین|یاشین\\s*جان`).test(norm) || (presentEntityIds.includes('yashin') && /(?:^|[،,\s])(?:بچه‌?ها|باریستا|شماها)(?:[،,!\s]|$)/.test(norm))) addressedNpc = 'yashin';
-  else if (new RegExp(`${addressPrefix}مانی|مانی\\s*جان`).test(norm)) addressedNpc = 'mani';
+  const addressPrefix = '(?:(?:رو\\s*به|به\\s*سمت|خطاب\\s*به|با|از|به|پیش)\\s+(?:آقا(?:ی)?\\s+|خانم\\s+)?|^(?:\\s)*(?:سلام|درود|خسته\\s*نباشید|هی)?(?:[،,!\\s])*)';
+  if (new RegExp(`${addressPrefix}حانیه(?:[،,!\\s]|\\s*جان|$)`).test(norm) || (presentEntityIds.includes('haniyeh') && /(?:^|[،,\s])(?:خانم|خانومی|دختر)(?:[،,!\s]|$)/.test(norm))) addressedNpc = 'haniyeh';
+  else if (new RegExp(`${addressPrefix}سالار(?:[،,!\\s]|\\s*جان|$)`).test(norm)) addressedNpc = 'salar';
+  else if (new RegExp(`${addressPrefix}یاشین(?:[،,!\\s]|\\s*جان|$)`).test(norm) || (presentEntityIds.includes('yashin') && /(?:^|[،,\s])(?:بچه‌?ها|باریستا|شماها)(?:[،,!\s]|$)/.test(norm))) addressedNpc = 'yashin';
+  else if (new RegExp(`${addressPrefix}مانی(?:[،,!\\s]|\\s*جان|$)`).test(norm)) addressedNpc = 'mani';
   else if (new RegExp(`${addressPrefix}(?:کلکسیونر|خریدار|نماینده)`).test(norm)) addressedNpc = 'collector';
   else if (new RegExp(`${addressPrefix}(?:مرد\\s*پالتوپوش|مرد\\s*پالتو|مرد)`).test(norm)) addressedNpc = 'exiting_man';
 
