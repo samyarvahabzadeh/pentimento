@@ -59,7 +59,14 @@ function sceneIdOf(state: RunState): string {
 }
 
 function friendlyInventory(state: RunState): string[] {
-  return state.canonical.inventoryIds.map(id => INITIAL_WORLD_OBJECTS[id]?.nameFa ?? id);
+  return state.canonical.inventoryIds.map(id => {
+    const cleanId = id.replace(/^item_/, '');
+    return state.worldObjects?.[id]?.nameFa ??
+      state.worldObjects?.[cleanId]?.nameFa ??
+      INITIAL_WORLD_OBJECTS[id]?.nameFa ??
+      INITIAL_WORLD_OBJECTS[cleanId]?.nameFa ??
+      id;
+  });
 }
 
 function friendlyEvidence(state: RunState): string[] {

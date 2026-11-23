@@ -1,5 +1,5 @@
 import type { PlayerClassId, RunState } from './types.js';
-import { LOCATION_REGISTRY } from './worldAffordances.js';
+import { INITIAL_WORLD_OBJECTS, LOCATION_REGISTRY } from './worldAffordances.js';
 
 const PERSIAN_DIACRITICS = /[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/gu;
 
@@ -7,7 +7,10 @@ export type ConversationalIntent =
   | 'scene_overview'
   | 'scene_peek'
   | 'scene_listen'
-  | 'situation_recap';
+  | 'situation_recap'
+  | 'inventory_check'
+  | 'evidence_check'
+  | 'guidance_request';
 
 export interface PlayerIdentityInterpretation {
   role: PlayerClassId;
@@ -30,6 +33,26 @@ export function normalizeConversationalPersian(value: string): string {
 export function classifyConversationalIntent(input: string): ConversationalIntent | undefined {
   const norm = normalizeConversationalPersian(input);
   if (!norm) return undefined;
+
+  if (
+    /^(?:چی|چه\s*چیزهایی?)\s*(?:تو|توی|داخل|در)\s*(?:کیف|جیب)|^(?:کیف|جیب)(?:م|مونو|مو)?\s*(?:رو\s*)?(?:ببینم|ببین|نگاه(?:\s*می\s*کنم|\s*کنم|\s*بندازم)?|چک(?:\s*می\s*کنم|\s*کنم)?|باز(?:\s*می\s*کنم|\s*کنم)?|بررسی(?:\s*می\s*کنم|\s*کنم)?|وارسی(?:\s*می\s*کنم|\s*کنم)?)(?:$|[؟?.!])|^(?:وسایل|محتویات\s*(?:کیف|جیب))(?:م|مونو|مو)?(?:$|[؟?])|^(?:چی|چه\s*چیزایی?)\s*همراهم(?:ه|ست| دارم)|چیزهایی\s*که\s*(?:دارم|همراهمه)|^(?:بررسی|وارسی|چک|دیدن)\s*(?:کیف|جیب)(?:م)?(?:\s|$|[؟?.!])/.test(norm) &&
+    !/بذار|بذارم|می‌?گذارم|می‌?ذارم|انداخت|پنهان|قایم|سُر|بنداز/.test(norm)
+  ) {
+    return 'inventory_check';
+  }
+
+  if (
+    /^(?:مدارک|شواهد|سرنخ\s*ها|سرنخ‌ها|یافته\s*ها|یافته‌ها)(?:م|مونو|مو)?(?:\s+(?:من|ما))?\s*(?:چیست|چیه|چی\s*(?:دارم|داریم)|چیاست|کدومن|کدومند|رو\s*(?:ببین|چک|بررسی|نشون|مرور)\s*کن)?(?:$|[؟?.!])|^(?:لیست|فهرست|مرور)\s*(?:مدارک|شواهد|سرنخ|یافته)|^(?:چیا|چه\s*چیزهایی?)\s*(?:تا\s*الان\s*)?(?:پیدا\s*کردم|فهمیدم|ثبت\s*کردم)|پرونده\s*(?:رو\s*)?(?:ببین|چک|مرور|نگاه)\s*(?:کن)?$/.test(norm) &&
+    !/بلوف|دروغ|پلیس|تحویل|جعل|جعلی|حدس|ندارم|بدون/.test(norm)
+  ) {
+    return 'evidence_check';
+  }
+
+  if (
+    /^(?:راهنما|کمک|راهنمایی)(?:$|[!؟?])|^(?:الان\s*)?(?:چی|چه)\s*کار\s*(?:می‌?تونم|کنم|باید\s*بکنم)(?:$|[؟?])|^(?:الان\s*)?چه\s*کاری\s*(?:می‌?شه|می‌?تونم)\s*کرد(?:$|[؟?])|^چیکار\s*کنم(?:$|[؟?])/.test(norm)
+  ) {
+    return 'guidance_request';
+  }
 
   if (
     /(?:چی|چه)\s*(?:شده|خبره|اتفاقی?\s*افتاده)|ماجرا\s*چی(?:ه|ست)|قضیه\s*چی(?:ه|ست)|اینجا\s*چه\s*خبره/.test(norm)
@@ -189,6 +212,84 @@ export function renderIdentityCorrection(
 
 export function renderSceneOverview(state: RunState, intent: ConversationalIntent): string {
   const sceneId = state.canonical.currentScene || state.scene.sceneId;
+
+  if (intent === 'inventory_check') {
+    const inv = state.canonical.inventoryIds
+      .map(id => {
+        const cleanId = id.replace(/^item_/, '');
+        return state.worldObjects?.[id]?.nameFa ??
+          state.worldObjects?.[cleanId]?.nameFa ??
+          INITIAL_WORLD_OBJECTS[id]?.nameFa ??
+          INITIAL_WORLD_OBJECTS[cleanId]?.nameFa ??
+          id;
+      });
+    if (inv.length > 0) {
+      return `کیف و وسایلت را بازبینی می‌کنی. این‌ها همراه توست:\n• ${inv.join('\n• ')}\n\nمی‌توانی هر کدام را که می‌خواهی از نزدیک بررسی کنی یا در تعامل با محیط به کار ببری.`;
+    }
+    return 'کیف و جیب‌هایت را بررسی می‌کنی؛ هنوز شیء یا مدرک فیزیکی قابل‌حملی همراهت نیست. اشیایی را که در کافه پیدا می‌کنی می‌توانی برداری و با خودت نگه‌داری.';
+  }
+
+  if (intent === 'evidence_check') {
+    const evidenceLabels: Record<string, string> = {
+      fact_wet_receipt: 'رسید نم‌کشیدهٔ میز پنج با مهر کارگاهی',
+      fact_time_0017: 'زمان چاپ ۰۰:۱۷ روی فیش رسید',
+      fact_red_glove_man: 'دستکش قرمز مرد پالتوپوش در حال دور شدن',
+      fact_solvent_smell_cup: 'بوی حلال شیمیایی و نفتی جدا از قهوه در فنجان ۵',
+      fact_red_stain_saucer: 'رد قرمز لایه‌مانند و مشکوک روی نعلبکی ۵',
+      fact_penti_agitation: 'واکنش و بی‌قراری غیرعادی گربه (پنتی) نسبت به میز ۵',
+      fact_pos_order_timestamp: 'ثبت سفارش میز پنج در ساعت ۰۰:۱۱ روی پوز',
+      fact_pos_receipt_time_gap: 'اختلاف زمان ۶ دقیقه‌ای بین سفارش و صدور فیش',
+      fact_painting_surface_anomaly: 'ناهم‌جهتی ترک‌های ورنی و تصویر رویی تابلوی پنتیمنتو',
+      fact_underpainting_hidden_layer: 'وجود ترکیب‌بندی و خطوط قدیمی‌تر زیر لایهٔ رنگ',
+      fact_painting_window_reflection: 'انعکاس قاب پنجرهٔ مدفون در لایهٔ زیرین تابلو',
+      fact_label_numbers_14_3_7_55: 'توالی اعداد ۱۴ / ۳ / ۷ / ۵۵ پشت بوم',
+      fact_label_transfer_trace: 'چندنوبتی‌بودن ثبت و لایه‌نشانی اعداد مالکیت',
+      fact_invoice_is_forged: 'ناهم‌خوانی فاکتور پلاک ۵۵ با قالب اسناد رسمی',
+      fact_invoice_text_rg_lot55_returned: 'متن R.G. / Lot 55 / Returned در فاکتور روی میز سالار',
+      fact_invoice_font_differs_from_others: 'تفاوت فونت و شماره‌گذاری فاکتور با سایر اسناد',
+      fact_invoice_lot55_seal: 'اثر مهر پلاک ۵۵ روی سند مالی',
+      fact_camera_time_gap: 'شکاف زمانی میان ۰۰:۱۱ و ۰۰:۱۷ در تصاویر دوربین مداربسته',
+      fact_footage_was_never_written: 'ثبت‌نشدن رویداد نوشتن روی دیسک ذخیره‌ساز دوربین',
+      fact_parked_car_sighting: 'خودروی خاموش و بدون چراغ در ابتدای کوچه',
+      fact_final_timeline_synthesis: 'جمع‌بندی متصل و اثبات‌شدهٔ خط زمانی وقایع',
+      fact_florence_historical_breach: 'سند تاریخی پنهان در لایهٔ زیرین تابلوی پنتیمنتو',
+    };
+    const ev = state.canonical.evidenceIds
+      .map(id => evidenceLabels[id] ?? id)
+      .slice(-8);
+    if (ev.length > 0) {
+      return `شواهد و مدارکی که تا این لحظه کشف و ثبت کرده‌ای:\n• ${ev.join('\n• ')}\n\nاین دانسته‌ها اهرم تو در گفت‌وگو با آدم‌ها و بازکردن گره‌های پایانی پرونده هستند.`;
+    }
+    return 'هنوز مدرک یا نکتهٔ اثبات‌شده‌ای در پرونده ثبت نکرده‌ای. محیط اطراف، اسناد، گفته‌های آدم‌ها و تناقض‌های زمانی را بررسی کن.';
+  }
+
+  if (intent === 'guidance_request') {
+    switch (sceneId) {
+      case 'scene_entrance':
+        return 'در آستانهٔ ورودی کافه‌ای. می‌توانی:\n• رسید نم‌کشیدهٔ روی زمین را بررسی کنی یا برداری.\n• به مرد پالتوپوشی که دارد دور می‌شود چیزی بگویی.\n• درِ شیشه‌ای را باز کنی و وارد سالن اصلی کافه شوی.';
+      case 'scene_table5':
+        return 'در سالن اصلی کنار میز ۵ هستی. می‌توانی:\n• فنجان و نعلبکی رهاشده را بو بکشی یا بررسی کنی.\n• پنتی (گربه) را زیر صندلی نوازش کنی یا با حانیه صحبت کنی.\n• به سمت پیشخوان بروی و با یاشین و مانی حرف بزنی.\n• به دیوار گالری یا اتاق حسابداری سالار سر بزنی.';
+      case 'scene_counter':
+        return 'کنار پیشخوان و بار باریستا هستی. می‌توانی:\n• با یاشین درباره زمان سفارش میز ۵ یا فوتبال و قهوه صحبت کنی.\n• با مانی درباره آماده‌سازی قهوه حرف بزنی.\n• مانیتور پوز و لاگ سفارش‌ها را وارسی کنی.\n• یک قهوه تازه سفارش بدهی یا به سالن و دفتر برگردی.';
+      case 'scene_office':
+        return 'در اتاق حسابداری پیش سالار هستی. می‌توانی:\n• از سالار درباره پیام نگران‌کننده‌اش و تهدید خریدار بپرسی.\n• زونکن و فاکتورهای روی میز را ورق بزنی و بخوانی.\n• به بخش مانیتورینگ دوربین‌های مداربسته بروی.';
+      case 'scene_cctv':
+        return 'پای مانیتورهای دوربین مداربسته هستی. می‌توانی:\n• خط زمانی ضبط تصاویر را بین ساعت ۱۲ تا ۱ بامداد بازبینی کنی.\n• رخدادهای نوشتن روی دیسک را بررسی کنی.\n• به اتاق سالار یا پیشخوان برگردی.';
+      case 'scene_gallery':
+        return 'روبروی تابلوی پنتیمنتو در گالری هستی. می‌توانی:\n• سطح بوم و ترک‌های ورنی را با نور مایل بررسی کنی.\n• قاب تابلو را فاصله بدهی و برچسب پشت آن را بخوانی.\n• به انبار کارتن‌ها یا سالن برگردی.';
+      case 'scene_storage':
+        return 'در انبار کارتن‌ها هستی. می‌توانی:\n• جعبه‌ها و بسته‌بندی‌های داخل قفسه را بررسی کنی.\n• به گالری یا پیشخوان برگردی.';
+      case 'scene_collector_meeting':
+        return 'پای مذاکره با نمایندهٔ خریدار هستی. می‌توانی:\n• با شواهد و فاکتور جعلی پلاک ۵۵ بلوف بزنی.\n• مذاکره را متوقف کنی و به سمت میز آرشیو بروی.';
+      case 'scene_archive':
+        return 'پشت میز آرشیو هستی. می‌توانی:\n• مدارک و خط زمانی را کنار هم تحلیل کنی تا فرضیه بسازی.\n• سراغ بررسی لایه‌های زیرین تابلو بروی.';
+      case 'scene_underpainting':
+        return 'پای لایه‌های زیرین تابلوی پنتیمنتو هستی. می‌توانی:\n• نشانه‌های تاریخی زیر رنگ را بسنجی.\n• تصمیم نهایی‌ات را درباره سرنوشت تابلو، سالار و کافه ثبت کنی.';
+      default:
+        return 'می‌توانی اشیای پیرامونت را دقیق‌تر وارسی کنی، با افراد حاضر در صحنه وارد گفت‌وگو شوی، یا به بخش‌های دیگر کافه حرکت کنی.';
+    }
+  }
+
   const isRecap = intent === 'situation_recap';
   const isListening = intent === 'scene_listen';
   const isPeeking = intent === 'scene_peek';

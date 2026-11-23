@@ -243,6 +243,9 @@ export async function resolvePlayerTurn(
     conversationalIntent && (
       conversationalIntent === 'scene_listen' ||
       conversationalIntent === 'scene_peek' ||
+      conversationalIntent === 'inventory_check' ||
+      conversationalIntent === 'evidence_check' ||
+      conversationalIntent === 'guidance_request' ||
       (semantic.primitive === 'inspect' && semantic.target === 'scene_overview')
     )
   );
@@ -491,7 +494,13 @@ export async function resolvePlayerTurn(
         ? { id: 'SCENE_LISTEN', summary: 'گوش‌دادن به صحنهٔ فعلی' }
         : conversationalIntent === 'scene_peek'
           ? { id: 'SCENE_PEEK', summary: 'نگاه‌کردن از زاویهٔ محدود' }
-          : { id: 'SCENE_OVERVIEW', summary: 'دیدن صحنهٔ فعلی' };
+          : conversationalIntent === 'inventory_check'
+            ? { id: 'INVENTORY_CHECK', summary: 'بررسی وسایل و محتویات کیف' }
+            : conversationalIntent === 'evidence_check'
+              ? { id: 'EVIDENCE_CHECK', summary: 'بررسی شواهد و سرنخ‌های ثبت‌شده' }
+              : conversationalIntent === 'guidance_request'
+                ? { id: 'GUIDANCE_REQUEST', summary: 'راهنمایی کنش‌های قابل‌انجام در صحنه' }
+                : { id: 'SCENE_OVERVIEW', summary: 'دیدن صحنهٔ فعلی' };
     selectedCandidate = makeSyntheticCandidate(
       conversationalCandidate.id,
       'inspect',
