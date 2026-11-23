@@ -741,7 +741,18 @@ export async function resolvePlayerTurn(
       resolutionPath = 'fallback';
       source = 'authored_fallback';
       resolution = createTurnResolution('GENERIC_FALLBACK');
-      rawNarrative = `با دقت فضا را بررسی می‌کنی و وضعیت صحنه را زیر نظر می‌گیری.`;
+
+      if (presentNpcs.includes('yashin')) {
+        rawNarrative = `یاشین سرش را کمی کج می‌کند و با متانت می‌گوید: «متوجه منظورتون نشدم؛ اگر سؤالی دربارهٔ قهوه یا سفارش دارید در خدمتم.»`;
+      } else if (presentNpcs.includes('mani')) {
+        rawNarrative = `مانی دستمال را از روی دستگاه اسپرسو پایین می‌آورد و با تعجب نگاهت می‌کند: «چی گفتی داداش؟ یکم واضح‌تر بگو تا بفهمم!»`;
+      } else if (presentNpcs.includes('haniyeh')) {
+        rawNarrative = `حانیه با تعجب به تو نگاه می‌کند و دستش را آرام روی شانهٔ پنتی می‌کشد: «ببخشید، متوجه نشدم چی گفتی!»`;
+      } else if (presentNpcs.includes('salar')) {
+        rawNarrative = `سالار نگاهش را از روی کاغذها بالا می‌آورد و عینکش را جا‌به‌جا می‌کند: «متوجه نشدم چی گفتی؛ آروم‌تر بگو ببینم چی شده.»`;
+      } else {
+        rawNarrative = `با دقت فضا را بررسی می‌کنی؛ برای پیشبرد کار می‌توانی با افراد حاضر صحبت کنی، نشانه‌های محیط را بررسی کنی یا اشیای صحنه را به کار بگیری.`;
+      }
     }
   }
 

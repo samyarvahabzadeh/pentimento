@@ -1142,8 +1142,20 @@ export function solveSemanticAction(
         isSuccess: true,
       };
     }
+    const presentNpcs = state.scene.activeEntityIds ?? [];
+    let fallbackText = 'در این لحظه نگاهی به اطراف می‌اندازی؛ برای پیشبرد کار می‌توانی با افراد حاضر صحبت کنی، نشانه‌های محیط را بررسی کنی یا ابزار و مدارک موجود را به کار بگیری.';
+    if (presentNpcs.includes('yashin')) {
+      fallbackText = 'یاشین سرش را کمی کج می‌کند و با متانت می‌گوید: «متوجه منظورتون نشدم؛ اگر سؤالی دربارهٔ قهوه یا سفارش دارید در خدمتم.»';
+    } else if (presentNpcs.includes('mani')) {
+      fallbackText = 'مانی دستمال را از روی دستگاه اسپرسو پایین می‌آورد و با تعجب نگاهت می‌کند: «چی گفتی داداش؟ یکم واضح‌تر بگو تا بفهمم!»';
+    } else if (presentNpcs.includes('haniyeh')) {
+      fallbackText = 'حانیه با تعجب به تو نگاه می‌کند و دستش را آرام روی شانهٔ پنتی می‌کشد: «ببخشید، متوجه نشدم چی گفتی!»';
+    } else if (presentNpcs.includes('salar')) {
+      fallbackText = 'سالار نگاهش را از روی کاغذها بالا می‌آورد و عینکش را جا‌به‌جا می‌کند: «متوجه نشدم چی گفتی؛ آروم‌تر بگو ببینم چی شده.»';
+    }
+
     return {
-      narrative: 'در این لحظه نگاهی به اطراف می‌اندازی؛ برای پیشبرد کار می‌توانی با افراد حاضر صحبت کنی، نشانه‌های محیط را بررسی کنی یا ابزار و مدارک موجود را به کار بگیری.',
+      narrative: fallbackText,
       acceptedEffects: [],
       isSuccess: false,
       reasonIfFailed: 'improvisation_needs_concrete_method',
