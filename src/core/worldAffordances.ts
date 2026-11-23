@@ -498,7 +498,7 @@ export const LOCATION_REGISTRY: Record<string, LocationDefinition> = {
     nameFa: 'میز شماره ۵ و سالن اصلی',
     sceneId: 'scene_table5',
     nodeId: 'NODE_02',
-    reachableFrom: ['scene_entrance', 'scene_counter', 'scene_gallery', 'scene_office'],
+    reachableFrom: ['scene_entrance', 'scene_counter', 'scene_gallery', 'scene_office', 'scene_storage'],
     defaultDescription: 'کنار میز شماره ۵ می‌ایستی. فنجان رهاشده روی میز و حانیه در کنار آن حضور دارند و پنتی زیر صندلی کز کرده است.',
     activeEntityIds: ['haniyeh', 'cat_penti'],
     visibleObjectIds: ['table5_cup', 'table5_saucer', 'table5_menu', 'wooden_chair', 'window_glass', 'curtain', 'lights_switch'],
@@ -508,7 +508,7 @@ export const LOCATION_REGISTRY: Record<string, LocationDefinition> = {
     nameFa: 'پیشخوان و کانتر باریستا',
     sceneId: 'scene_counter',
     nodeId: 'NODE_03',
-    reachableFrom: ['scene_table5', 'scene_entrance', 'scene_gallery', 'scene_office', 'scene_cctv'],
+    reachableFrom: ['scene_table5', 'scene_entrance', 'scene_gallery', 'scene_office', 'scene_cctv', 'scene_storage'],
     defaultDescription: 'کنار پیشخوان چوبی صیقلی کافه می‌ایستی. یاشین با پیراهن آراسته و مانی پشت دستگاه اسپرسو متوجه حضورت می‌شوند.',
     activeEntityIds: ['yashin', 'mani'],
     visibleObjectIds: ['barista_counter', 'pos_terminal', 'espresso_machine', 'steam_wand', 'cash_drawer'],
@@ -653,11 +653,20 @@ export function findLocation(keyword: string): LocationDefinition | undefined {
       return loc;
     }
   }
-  // Directional phrases take precedence over object aliases.  In particular,
-  // "enter the cafe" must not resolve back to the entrance merely because the
-  // semantic target is the door handle.
+  // Directional phrases take precedence over object aliases. In particular,
+  // leaving an internal room (office, storage) means returning to the salon,
+  // and "enter the cafe" must not resolve back to the entrance door.
+  if (/(?:از\s+)?(?:دفتر|اتاق(?:\s+سالار)?|انبار|حسابداری|مانیتورینگ).*?(?:خارج|بیرون)|(?:خارج|بیرون).*?(?:از\s+)?(?:دفتر|اتاق(?:\s+سالار)?|انبار|حسابداری|مانیتورینگ)/.test(norm)) {
+    return LOCATION_REGISTRY.scene_table5;
+  }
+  if (/(?:از\s*)?پشت\s*(?:بوم|قاب|تابلو).*(?:بیرون|برمی‌?گرد|برگرد)/.test(norm)) {
+    return LOCATION_REGISTRY.scene_gallery;
+  }
+  if (/(?:برمی‌?گرد(?:م|وم)|برگردم?)\s*(?:به\s*)?(?:سر\s*)?(?:جام|میزم|میز\s*قبلی|جای\s*قبلی(?:م)?)|(?:سر\s*)?(?:جام|میزم|جای\s*قبلی(?:م)?)\s*(?:می‌?ر(?:م|وم)|میرم)/.test(norm)) {
+    return LOCATION_REGISTRY.scene_table5;
+  }
   if (/وارد.*(کافه|سالن)|داخل.*(کافه|سالن)|(?:می‌?ر(?:م|وم)|میرم|برم|می‌?آم|میام).*?(?:تو|داخل).*?(?:کافه|سالن)|پا.*(کافه|سالن)|گرمای.*سالن/.test(norm)) return LOCATION_REGISTRY.scene_table5;
-  if (/(?:از\s+کافه\s+خارج|خارج\s+(?:از\s+)?کافه|بیرون\s+(?:از\s+)?کافه)|برگرد.*کوچه|سمت.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_entrance;
+  if (/(?:از\s+کافه\s+(?:خارج|بیرون)|خارج\s+(?:از\s+)?کافه|بیرون\s+(?:از\s+)?کافه)|(?:می‌?ر(?:م|وم)|میرم|برمی‌?گرد(?:م|وم)|برگردم?)\s*(?:توی?|به\s+)?کوچه|سمت.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_entrance;
   if (/collector|کلکسیونر|خریدار|نماینده.*خریدار|ملاقات.*خریدار|جلسه.*پلاک|مذاکره/.test(norm)) return LOCATION_REGISTRY.scene_collector_meeting;
   if (/archive|آرشیو|میز.*(شواهد|آرشیو)|سنتز.*شواهد/.test(norm)) return LOCATION_REGISTRY.scene_archive;
   if (/underpainting|لایه.*(نهایی|زیرین)|لایه‌های\s*زیرین|زیرین.*تابلو|نقاشی.*زیرین|جمع.*بندی.*تابلو|افشای.*تاریخی/.test(norm)) return LOCATION_REGISTRY.scene_underpainting;

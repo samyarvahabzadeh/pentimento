@@ -740,6 +740,7 @@ export interface DynamicEnvironmentState {
   discoveredInspectionLayers?: Record<string, string[]>;
   revealedNpcKnowledge?: Record<string, string[]>;
   npcTopicHistory?: Record<string, string[]>;
+  visitedScenes?: string[];
 }
 
 // ─── Episode Situation Layer (v2.7) ─────────────────────────────────

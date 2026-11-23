@@ -462,11 +462,31 @@ export async function resolvePlayerTurn(
         if (state.worldObjects?.cafe_door) state.worldObjects.cafe_door.state.isOpen = !closesDoorOnEntry;
         effects.push({ type: 'modify_environment', key: 'entranceDoorOpen', value: !closesDoorOnEntry });
       }
-      rawNarrative = enteringFromStreet
+      if (!state.environmentState) state.environmentState = {};
+      if (!state.environmentState.visitedScenes) state.environmentState.visitedScenes = [];
+      const hasVisitedBefore = state.environmentState.visitedScenes.includes(targetLoc.sceneId);
+      if (!hasVisitedBefore) {
+        state.environmentState.visitedScenes.push(targetLoc.sceneId);
+      }
+
+      const REVISIT_DESCRIPTIONS: Record<string, string> = {
+        scene_table5: 'دوباره به سالن اصلی کافه و کنار میز شمارهٔ ۵ برمی‌گردی. فنجان رهاشده روی میز و حانیه در کنار آن حضور دارند و پنتی زیر صندلی کز کرده است.',
+        scene_counter: 'دوباره به سمت پیشخوان و کانتر باریستا می‌روی. یاشین و مانی پشت بار متوجه حضورت می‌شوند.',
+        scene_office: 'دوباره وارد اتاق حسابداری می‌شوی. سالار صالحی پشت میز کار چوبی نشسته و با چهره‌ای مضطرب اسناد را وارسی می‌کند.',
+        scene_gallery: 'دوباره به سمت انتهای سالن و دیوار گالری می‌روی. تابلوی نقاشی پنتیمنتو در پرتو ملایم هالوژن‌های دیواری در برابرت قرار می‌گیرد.',
+        scene_storage: 'دوباره وارد انبار کارتن‌ها و بسته‌بندی در انتهای راهرو می‌شوی.',
+        scene_cctv: 'دوباره به سمت سیستم مانیتورینگ دوربین‌های مداربسته بازمی‌گردی. مانیتورها تصاویر کوچه و سالن را نمایش می‌دهند.',
+        scene_entrance: 'روبروی در ورودی کافه در کوچهٔ حسینی می‌ایستی. نم‌نم باران روی سنگ‌فرش می‌نشیند و هوای خنک بیرون به صورتت می‌خورد.',
+        scene_painting_back: 'قاب را با احتیاط از دیوار فاصله داده‌ای. پشت بوم و برچسب مالکیت در برابر توست.',
+      };
+
+      rawNarrative = enteringFromStreet && !hasVisitedBefore
         ? `${closesDoorOnEntry
             ? 'وارد سالن اصلی کافه می‌شوی و درِ شیشه‌ای را پشت سرت چفت می‌کنی.'
             : 'درِ شیشه‌ای را هل می‌دهی و وارد سالن اصلی کافه می‌شوی؛ در پشت سرت آرام برمی‌گردد، اما کامل چفت نمی‌شود.'} چند قدم جلوتر، میز شمارهٔ ۵ با فنجان رهاشده دیده می‌شود؛ حانیه نزدیک میز ایستاده و پنتی زیر صندلی کز کرده است.`
-        : targetLoc.defaultDescription;
+        : (hasVisitedBefore && REVISIT_DESCRIPTIONS[targetLoc.sceneId]
+            ? REVISIT_DESCRIPTIONS[targetLoc.sceneId]
+            : targetLoc.defaultDescription);
 
       // Compound movement + dialogue: if player arrived and also addressed an NPC present here
       if (directNpc && targetLoc.activeEntityIds?.includes(directNpc)) {
@@ -557,6 +577,8 @@ export async function resolvePlayerTurn(
           if (!/برمی‌?دار|داخل\s*(?:کیف|جیب)|درون\s*(?:کیف|جیب)/.test(inspection.narrative)) {
             inspection.narrative = `${inspection.narrative}\n\n${targetObj.nameFa} را از جای خود برمی‌داری و در کیفت می‌گذاری. از این لحظه دیگر در محل قبلی دیده نمی‌شود و همراه توست.`;
           }
+        } else {
+          inspection.narrative = `${targetObj.nameFa} قبلاً برداشته شده و در کیفت همراه توست. می‌توانی با دقت بیشتری جزئیات آن را بررسی کنی.`;
         }
       }
       resolution = createTurnResolution(inspection.accessible ? 'GENERIC_INSPECT' : 'GENERIC_INSPECT_OUT_OF_REACH', inspection.effects);

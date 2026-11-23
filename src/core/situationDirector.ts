@@ -122,9 +122,15 @@ function classifyTopic(raw: string): string {
   if (/کجا|کجاست/.test(raw)) return 'whereabouts';
   if (/زنگ|تماس|تلفن|پیام/.test(raw) && /رسیدم|اومدم|آمدم|اینجام/.test(raw)) return 'arrival';
   if (/^(?:\s)*(?:سلام|درود|خسته\s*نباشید|شب\s*بخیر)/.test(raw)) return 'greeting';
-  if (/مرد|مهمان|مشتری|دستکش/.test(raw)) return 'visitor';
+  if (/عکس|عکاسی|تبلت|دوربین/.test(raw)) return 'photo';
+  if (/دستکش|قرمز|لباس|تیپ|پوشش|چهره|قیافه/.test(raw)) return 'attire_appearance';
+  if (/رسید|فیش/.test(raw)) return 'receipt';
+  if (/مرد|مهمان|مشتری/.test(raw)) return 'visitor';
+  if (/بدهی|چک|طلب|تسویه/.test(raw)) return 'debt';
+  if (/مضطرب|ترسید|نگران|وحشت/.test(raw)) return 'anxiety';
   if (/فاکتور|سند|زونکن|پلاک|۵۵|55/.test(raw)) return 'invoice';
-  if (/فنجان|قهوه|حلال|بو/.test(raw)) return 'cup';
+  if (/حلال|تینر|شوینده|بو|شیمیایی/.test(raw)) return 'solvent';
+  if (/فنجان|قهوه/.test(raw)) return 'cup';
   if (/دوربین|لاگ|پوز|ساعت|زمان/.test(raw)) return 'timeline';
   if (/تابلو|بوم|نقاشی|لایه|برچسب/.test(raw)) return 'painting';
   if (/امن|خطر|کمک|اعتماد|حفاظت/.test(raw)) return 'safety';

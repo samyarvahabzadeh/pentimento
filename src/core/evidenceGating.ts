@@ -30,7 +30,13 @@ export function isWorldObjectAccessible(object: WorldObject, state: RunState): b
   const scene = normalizeSceneId(state.canonical.currentScene || state.scene.sceneId);
 
   if (location === 'in_pocket' || location === 'in_bag') return true;
-  if (state.canonical.inventoryIds.includes(object.id)) return true;
+  if (
+    state.canonical.inventoryIds.includes(object.id) ||
+    state.canonical.inventoryIds.includes(`item_${object.id}`) ||
+    (object.id.startsWith('item_') && state.canonical.inventoryIds.includes(object.id.slice(5)))
+  ) {
+    return true;
+  }
   if (object.id === 'cafe_door' && scene === 'scene_table5') return true;
   return location === scene;
 }
