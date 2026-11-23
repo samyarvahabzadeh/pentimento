@@ -19,6 +19,7 @@ import { findLocation, findWorldObject, INITIAL_WORLD_OBJECTS, isLocationReachab
 import { solveSemanticAction } from './semanticSolver.js';
 import { normalizeSceneId, resolveLayeredInspection } from './evidenceGating.js';
 import { advanceEpisodeSituation } from './situationDirector.js';
+import { generateLivingDialogue } from './livingDialogue.js';
 import {
   classifyConversationalIntent,
   detectIdentityCorrection,
@@ -638,6 +639,40 @@ export async function resolvePlayerTurn(
         actionSucceeded = solverRes.isSuccess;
         resolution = createTurnResolution('GENERIC_NPC_INTERACTION', solverRes.acceptedEffects);
         rawNarrative = solverRes.narrative;
+
+        // If the deterministic solver yielded a generic refusal/placeholder line and transport is available,
+        // elevate to rich, in-character Living Dialogue!
+        const isGenericCannedRefusal =
+          /دستگاه پاسخ‌گویی نیستم|حدس با ثبت فرق داره|اگر فقط دنبال جواب پرونده‌ای|من می‌تونم جواب بدم، معامله کنم|پرسش عمومی پاسخ عمومی دارد|خواسته یا مدرکت را دقیق‌تر روی میز بگذاری|رفتارت را زیر نظر دارد/.test(rawNarrative);
+
+        if (isGenericCannedRefusal && transport) {
+          try {
+            const living = await generateLivingDialogue(matchedNpc, playerInput, state, transport);
+            if (living && living.narrative) {
+              rawNarrative = living.narrative;
+              source = 'director';
+              resolutionPath = 'llm';
+              debugInfo.provider = living.provider;
+              debugInfo.model = living.model;
+              if (living.trustDelta !== 0) {
+                resolution.acceptedEffects.push({
+                  type: 'modify_trust',
+                  npcId: matchedNpc,
+                  delta: living.trustDelta,
+                });
+              }
+              if (living.pressureDelta > 0) {
+                resolution.acceptedEffects.push({
+                  type: 'modify_pressure',
+                  npcId: matchedNpc,
+                  delta: living.pressureDelta,
+                });
+              }
+            }
+          } catch (err) {
+            console.warn(`[resolvePlayerTurn] Living dialogue error: ${err}`);
+          }
+        }
       }
     }
   }
@@ -657,12 +692,49 @@ export async function resolvePlayerTurn(
 
   // ─── STEP 6: Fallback ───
   if (!rawNarrative) {
-    actionSucceeded = false;
-    fallbackUsed = true;
-    resolutionPath = 'fallback';
-    source = 'authored_fallback';
-    resolution = createTurnResolution('GENERIC_FALLBACK');
-    rawNarrative = `با دقت فضا را بررسی می‌کنی و وضعیت صحنه را زیر نظر می‌گیری.`;
+    // Check if player is conversing with someone present in the room
+    const presentNpcCandidate = directNpc ?? (presentNpcs.length === 1 ? presentNpcs[0] : directNpcIds.find(id => presentNpcs.includes(id)));
+    if (presentNpcCandidate && transport && !/بررسی|نگاه|بردار|برو|حرکت|بازگشت|خروج/.test(playerInput)) {
+      try {
+        const living = await generateLivingDialogue(presentNpcCandidate, playerInput, state, transport);
+        if (living && living.narrative) {
+          actionSucceeded = true;
+          fallbackUsed = false;
+          resolutionPath = 'llm';
+          source = 'director';
+          selectedCandidate = makeSyntheticCandidate('LIVING_DIALOGUE', 'ask', [presentNpcCandidate], `گفتگوی زنده با ${presentNpcCandidate}`);
+          resolution = createTurnResolution('LIVING_DIALOGUE');
+          rawNarrative = living.narrative;
+          debugInfo.provider = living.provider;
+          debugInfo.model = living.model;
+          if (living.trustDelta !== 0) {
+            resolution.acceptedEffects.push({
+              type: 'modify_trust',
+              npcId: presentNpcCandidate,
+              delta: living.trustDelta,
+            });
+          }
+          if (living.pressureDelta > 0) {
+            resolution.acceptedEffects.push({
+              type: 'modify_pressure',
+              npcId: presentNpcCandidate,
+              delta: living.pressureDelta,
+            });
+          }
+        }
+      } catch (e) {
+        console.warn(`[resolvePlayerTurn] Fallback living dialogue error: ${e}`);
+      }
+    }
+
+    if (!rawNarrative) {
+      actionSucceeded = false;
+      fallbackUsed = true;
+      resolutionPath = 'fallback';
+      source = 'authored_fallback';
+      resolution = createTurnResolution('GENERIC_FALLBACK');
+      rawNarrative = `با دقت فضا را بررسی می‌کنی و وضعیت صحنه را زیر نظر می‌گیری.`;
+    }
   }
 
   state.activeTurnResolution = resolution;

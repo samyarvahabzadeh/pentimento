@@ -740,6 +740,7 @@ export interface DynamicEnvironmentState {
   discoveredInspectionLayers?: Record<string, string[]>;
   revealedNpcKnowledge?: Record<string, string[]>;
   npcTopicHistory?: Record<string, string[]>;
+  livingDialogueHistory?: Record<string, Array<{ player: string; character: string; memory?: string }>>;
   visitedScenes?: string[];
 }
 

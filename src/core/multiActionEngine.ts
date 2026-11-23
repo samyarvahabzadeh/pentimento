@@ -34,6 +34,13 @@ export function decomposeMultiActionInput(playerInput: string, state: RunState):
     return [extractSemanticAction(norm, state)];
   }
 
+  // Direct vocative address to an NPC (e.g. "یاشین، ..." or "مانی:") must not be split into isolated fragments
+  if (
+    /^(?:یاشین|مانی|حانیه|سالار|آرین|کلکسیونر|صالحی|محمدی|مرد\s*پالتو)[،,:]\s*/.test(norm)
+  ) {
+    return [extractSemanticAction(norm, state)];
+  }
+
   // Split on strong Persian conjunctions and delimiters
   let rawClauses = norm
     .split(/،|\s*و\s*سپس\s*|\s*و\s*بعد\s*|\s*سپس\s*|\s+بعد(?:ش)?\s+(?!از\s)|\s*قبل\s*از\s*اینکه\s*|\s*در\s*حالی\s*که\s*|;|؛/)

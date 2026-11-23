@@ -2,15 +2,16 @@
  * Transport factory — resolves ACTIVE_PROVIDER env var to the correct adapter.
  * Single place for provider selection. No game logic here.
  *
- * ACTIVE_PROVIDER values: groq | gemini | orcarouter
- * Default: groq
+ * ACTIVE_PROVIDER values: openrouter | gemini | groq | orcarouter
+ * Default: openrouter (if OPENROUTER_API_KEY set) or gemini
  */
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-import type { LLMTransport } from './llmTransport.js';
-import { GroqAdapter } from './groqAdapter.js';
+import type { LLMTransport, ChatMessage, ChatCompletionOptions, ChatCompletionResult } from './llmTransport.js';
+import { OpenRouterAdapter } from './openRouterAdapter.js';
 import { GeminiAdapter } from './geminiAdapter.js';
+import { GroqAdapter } from './groqAdapter.js';
 import { OrcaRouterAdapter } from './orcaRouterAdapter.js';
 
 class ResilientCompositeTransport implements LLMTransport {
@@ -28,38 +29,58 @@ class ResilientCompositeTransport implements LLMTransport {
         return await transport.generateDirectorOutput(context);
       } catch (err: any) {
         lastError = err;
-        console.warn(`[Transport] Provider failed: ${err.message}. Trying next fallback...`);
+        console.warn(`[Transport] Director provider failed: ${err.message}. Trying next fallback...`);
       }
     }
 
     throw lastError ?? new Error('[Transport] All providers failed');
   }
+
+  async generateChat(
+    messages: ChatMessage[],
+    options?: ChatCompletionOptions
+  ): Promise<ChatCompletionResult> {
+    let lastError: Error | null = null;
+
+    for (const transport of this.transports) {
+      if (typeof transport.generateChat === 'function') {
+        try {
+          return await transport.generateChat(messages, options);
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`[Transport] Chat provider failed: ${err.message}. Trying next fallback...`);
+        }
+      }
+    }
+
+    throw lastError ?? new Error('[Transport] All chat providers failed');
+  }
 }
 
 export function createTransport(): LLMTransport {
-  const provider = (process.env.ACTIVE_PROVIDER ?? 'gemini').toLowerCase().trim();
+  const provider = (process.env.ACTIVE_PROVIDER ?? 'openrouter').toLowerCase().trim();
 
-  const gemini = new GeminiAdapter();
+  const openrouter = new OpenRouterAdapter();
   const groq = new GroqAdapter();
+  const gemini = new GeminiAdapter();
   const orca = new OrcaRouterAdapter();
 
   let orderedTransports: LLMTransport[] = [];
 
   switch (provider) {
-    case 'gemini':
-      orderedTransports = [gemini, groq, orca];
+    case 'openrouter':
+      orderedTransports = [openrouter, groq, gemini, orca];
       break;
     case 'groq':
-      orderedTransports = [groq, gemini, orca];
+      orderedTransports = [groq, openrouter, gemini, orca];
       break;
-    case 'orcarouter':
-      orderedTransports = [orca, gemini, groq];
+    case 'gemini':
+      orderedTransports = [gemini, groq, openrouter, orca];
       break;
     default:
-      orderedTransports = [gemini, groq, orca];
+      orderedTransports = [openrouter, groq, gemini, orca];
       break;
   }
 
   return new ResilientCompositeTransport(orderedTransports);
 }
-
