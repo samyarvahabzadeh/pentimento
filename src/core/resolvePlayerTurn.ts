@@ -411,7 +411,7 @@ export async function resolvePlayerTurn(
     /پرت|جابه‌?جا|منتقل|سُر|بلند|پرده/.test(playerInput) ||
     (/هل|می‌?کشم|بکشم/.test(playerInput) && !/وارد|داخل/.test(playerInput))
   );
-  const explicitMovementClause = /(?:می‌?ر(?:م|وم)|میرم|می‌?(?:آ|ا)م|میام|رفتن|برو|بریم|حرکت|قدم|وارد|ورود|خارج|خروج|برمی‌?گرد|برگرد)/.test(playerInput);
+  const explicitMovementClause = /(?:می‌?ر(?:م|وم)|میرم|می‌?(?:آ|ا)م|میام|رفتن|برو|بریم|حرکت|قدم|وارد|ورود|خارج|خروج|برمی‌?گرد|برگرد|بازگشت)/.test(playerInput);
   const targetLoc =
     findLocation(playerInput) ||
     inferImplicitDestination(playerInput, state) ||
