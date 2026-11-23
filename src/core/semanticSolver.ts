@@ -644,6 +644,54 @@ export function solveSemanticAction(
         isSuccess: true,
       };
     }
+    if (targetKey.includes('entrance') || /ورودی|کوچه|بیرون\s*از\s*کافه|خارج\s*از\s*کافه|سمت.*در|خروجی/.test(method)) {
+      effects.push({ type: 'change_scene', sceneId: 'scene_entrance', nodeId: 'NODE_01' });
+      return {
+        narrative: `به سمت در ورودی کافه و خروجی کوچهٔ حسینی حرکت می‌کنی. سوز سرد باران از درز در احساس می‌شود.`,
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
+    if (targetKey.includes('cctv') || /دوربین|مانیتورینگ|حراست/.test(method)) {
+      effects.push({ type: 'change_scene', sceneId: 'scene_cctv', nodeId: 'NODE_12' });
+      return {
+        narrative: `به سمت سیستم مانیتورینگ دوربین‌های مداربسته می‌روی. مانیتورها تصاویر کوچه و سالن را نمایش می‌دهند.`,
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
+    if (targetKey.includes('storage') || /انبار|کارتن/.test(method)) {
+      effects.push({ type: 'change_scene', sceneId: 'scene_storage', nodeId: 'NODE_08' });
+      return {
+        narrative: `وارد انبار کارتن‌ها و بسته‌های بسته‌بندی در انتهای راهرو می‌شوی.`,
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
+    if (targetKey.includes('collector') || /کلکسیونر|نماینده.*خریدار|ملاقات.*خریدار|جلسه.*پلاک/.test(method)) {
+      effects.push({ type: 'change_scene', sceneId: 'scene_collector_meeting', nodeId: 'NODE_16' });
+      return {
+        narrative: `به سمت میز ملاقات با نمایندهٔ خریدار پلاک ۵۵ می‌روی؛ جایی که خط مذاکره باز است.`,
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
+    if (targetKey.includes('archive') || /آرشیو|میز.*شواهد|سنتز.*شواهد/.test(method)) {
+      effects.push({ type: 'change_scene', sceneId: 'scene_archive', nodeId: 'NODE_17' });
+      return {
+        narrative: `به سمت میز آرشیو و سنتز شواهد حرکت می‌کنی تا مدارک جمع‌آوری‌شده را روبه‌روی هم قرار دهی.`,
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
+    if (targetKey.includes('underpainting') || /لایه.*(نهایی|زیرین)|لایه‌های\s*زیرین|زیرین.*تابلو|نقاشی.*زیرین/.test(method)) {
+      effects.push({ type: 'change_scene', sceneId: 'scene_underpainting', nodeId: 'NODE_18' });
+      return {
+        narrative: `کنار لایهٔ زیرین تابلوی پنتیمنتو می‌ایستی تا ساختار و تاریخچهٔ پنهان اثر را بررسی کنی.`,
+        acceptedEffects: effects,
+        isSuccess: true,
+      };
+    }
   }
 
   // Movable props also accept novel repositioning language with no named
@@ -738,7 +786,14 @@ export function solveSemanticAction(
   }
 
   // 2f. Blocking door / corridor with movable object (Generic Affordance)
-  if (p === 'block' || (p === 'move' && (secTargetKey.includes('door') || method.includes('در') || method.includes('ورود') || method.includes('مدخل')))) {
+  const isIntentionalDoorBlock = p === 'block' || (
+    p === 'move' &&
+    (secTargetKey.includes('door') || method.includes('در') || method.includes('ورود') || method.includes('مدخل')) &&
+    (targetObj?.properties.includes('movable') || /صندلی|میز|مانع|ستون|حائل|سد/.test(method)) &&
+    /سد|مسدود|بستن.*راه|جلوی.*در|پشت.*در|حائل/.test(method) &&
+    !/وارد|داخل|عبور|رد\s*شدن|باز.*کن|هل.*بده|قدم|خارج/.test(method)
+  );
+  if (isIntentionalDoorBlock) {
     const obstacle = targetObj || secObj;
     state.environmentState.doorBlocked = true;
     effects.push({ type: 'modify_environment', key: 'doorBlocked', value: true });

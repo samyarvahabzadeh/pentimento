@@ -396,61 +396,86 @@ export async function resolvePlayerTurn(
   }
 
   // ─── STEP 2: Generic MOVE Dispatch ───
-  const isObjectManipulationMove = /هل|پرت|جابه‌?جا|منتقل|سُر|می‌?کشم|بکشم|بلند|پرده/.test(playerInput);
   // A sentence can contain both entering and closing the door. The semantic
   // extractor reasonably notices the final `use door` verb, but the spatial
   // transition must still happen before that door state is applied.
   const explicitCafeEntry = normalizeSceneId(state.canonical.currentScene || state.scene.sceneId) === 'scene_entrance' &&
-    /(?:وارد\s*(?:کافه|سالن)|(?:می\s*?روم|می\s*?رم|میرم|میام|می‌آیم)\s*(?:تو|داخل)\s*(?:کافه|سالن))/.test(playerInput);
-  if (!specialCandidateUsed && (semantic.primitive === 'move' || explicitCafeEntry) && semantic.target !== 'behind_counter' && !isObjectManipulationMove) {
-    const targetLoc =
-      findLocation(playerInput) ||
-      inferImplicitDestination(playerInput, state) ||
-      (semantic.target ? findLocation(semantic.target) : undefined) ||
-      (semantic.method ? findLocation(semantic.method) : undefined);
+    /(?:وارد\s*(?:کافه|سالن)|(?:می\s*?روم|می\s*?رم|میرم|میام|می‌آیم)\s*(?:تو|داخل)\s*(?:کافه|سالن)|پا\s*به\s*(?:کافه|سالن))/.test(playerInput);
+  const isObjectManipulationMove = !explicitCafeEntry && (
+    /پرت|جابه‌?جا|منتقل|سُر|بلند|پرده/.test(playerInput) ||
+    (/هل|می‌?کشم|بکشم/.test(playerInput) && !/وارد|داخل/.test(playerInput))
+  );
+  const explicitMovementClause = /(?:می‌?ر(?:م|وم)|میرم|می‌?(?:آ|ا)م|میام|حرکت\s*می‌?|قدم\s*برمی‌?|وارد\s*(?:می‌?|ش)|خارج\s*(?:می‌?|ش)|برمی‌?گرد)/.test(playerInput);
+  const targetLoc =
+    findLocation(playerInput) ||
+    inferImplicitDestination(playerInput, state) ||
+    (semantic.target ? findLocation(semantic.target) : undefined) ||
+    (semantic.method ? findLocation(semantic.method) : undefined);
+  const fromScene = normalizeSceneId(state.canonical.currentScene || state.scene.sceneId);
+  const shouldTransitionLocation = Boolean(
+    !specialCandidateUsed &&
+    !isObjectManipulationMove &&
+    semantic.target !== 'behind_counter' &&
+    targetLoc &&
+    (
+      semantic.primitive === 'move' ||
+      explicitCafeEntry ||
+      (explicitMovementClause && targetLoc.sceneId !== fromScene)
+    )
+  );
 
-    if (targetLoc) {
-      resolutionPath = 'generic_location_transition';
-      specialCandidateUsed = false;
-      source = 'deterministic';
-      selectedCandidate = makeSyntheticCandidate('GENERIC_MOVE', 'move', [targetLoc.id], `حرکت به ${targetLoc.nameFa}`);
+  if (shouldTransitionLocation && targetLoc) {
+    resolutionPath = 'generic_location_transition';
+    specialCandidateUsed = false;
+    source = 'deterministic';
+    selectedCandidate = makeSyntheticCandidate('GENERIC_MOVE', 'move', [targetLoc.id], `حرکت به ${targetLoc.nameFa}`);
 
-      const effects: CanonicalEffect[] = [];
-      const fromScene = normalizeSceneId(state.canonical.currentScene || state.scene.sceneId);
-      if (!isLocationReachable(fromScene, targetLoc.sceneId)) {
-        actionSucceeded = false;
-        resolution = createTurnResolution('GENERIC_MOVE_BLOCKED');
-        rawNarrative = `از موقعیت فعلی راه مستقیمی به «${targetLoc.nameFa}» نداری. باید از مسیرهای متصل کافه حرکت کنی.`;
-      } else if (!isLocationUnlocked(targetLoc, state)) {
-        actionSucceeded = false;
-        resolution = createTurnResolution('GENERIC_MOVE_GATED');
-        rawNarrative = targetLoc.blockedDescription ?? 'برای رفتن به این مرحله هنوز مدارک کافی در اختیار نداری.';
-      } else {
-        state.canonical.currentScene = targetLoc.sceneId;
-        state.canonical.currentNode = targetLoc.nodeId;
-        state.scene.sceneId = targetLoc.sceneId;
-        state.scene.nodeId = targetLoc.nodeId;
-        state.scene.activeEntityIds = [...(targetLoc.activeEntityIds ?? [])];
-        state.scene.visibleObjectIds = [...(targetLoc.visibleObjectIds ?? [])];
-        synchronizeSceneRuntime(state);
-        if (fromScene !== targetLoc.sceneId) {
-          effects.push({ type: 'change_scene', sceneId: targetLoc.sceneId, nodeId: targetLoc.nodeId });
-        }
-        const enteringFromStreet = fromScene === 'scene_entrance' && targetLoc.sceneId === 'scene_table5';
-        const closesDoorOnEntry = enteringFromStreet && /(?:در|درب).*(?:پشت\s*سر)?.*(?:می\s*)?(?:بند|بسته)|پشت\s*سرم.*(?:می\s*)?بند/.test(playerInput);
-        if (enteringFromStreet) {
-          const environmentState = state.environmentState ?? (state.environmentState = {});
-          environmentState.entranceDoorOpen = !closesDoorOnEntry;
-          if (state.worldObjects?.cafe_door) state.worldObjects.cafe_door.state.isOpen = !closesDoorOnEntry;
-          effects.push({ type: 'modify_environment', key: 'entranceDoorOpen', value: !closesDoorOnEntry });
-        }
-        resolution = createTurnResolution('GENERIC_MOVE', effects);
-        rawNarrative = enteringFromStreet
-          ? `${closesDoorOnEntry
-              ? 'وارد سالن اصلی کافه می‌شوی و درِ شیشه‌ای را پشت سرت چفت می‌کنی.'
-              : 'درِ شیشه‌ای را هل می‌دهی و وارد سالن اصلی کافه می‌شوی؛ در پشت سرت آرام برمی‌گردد، اما کامل چفت نمی‌شود.'} چند قدم جلوتر، میز شمارهٔ ۵ با فنجان رهاشده دیده می‌شود؛ حانیه نزدیک میز ایستاده و پنتی زیر صندلی کز کرده است.`
-          : targetLoc.defaultDescription;
+    const effects: CanonicalEffect[] = [];
+    if (!isLocationReachable(fromScene, targetLoc.sceneId)) {
+      actionSucceeded = false;
+      resolution = createTurnResolution('GENERIC_MOVE_BLOCKED');
+      rawNarrative = `از موقعیت فعلی راه مستقیمی به «${targetLoc.nameFa}» نداری. باید از مسیرهای متصل کافه حرکت کنی.`;
+    } else if (!isLocationUnlocked(targetLoc, state)) {
+      actionSucceeded = false;
+      resolution = createTurnResolution('GENERIC_MOVE_GATED');
+      rawNarrative = targetLoc.blockedDescription ?? 'برای رفتن به این مرحله هنوز مدارک کافی در اختیار نداری.';
+    } else {
+      state.canonical.currentScene = targetLoc.sceneId;
+      state.canonical.currentNode = targetLoc.nodeId;
+      state.scene.sceneId = targetLoc.sceneId;
+      state.scene.nodeId = targetLoc.nodeId;
+      state.scene.activeEntityIds = [...(targetLoc.activeEntityIds ?? [])];
+      state.scene.visibleObjectIds = [...(targetLoc.visibleObjectIds ?? [])];
+      synchronizeSceneRuntime(state);
+      if (fromScene !== targetLoc.sceneId) {
+        effects.push({ type: 'change_scene', sceneId: targetLoc.sceneId, nodeId: targetLoc.nodeId });
       }
+      const enteringFromStreet = fromScene === 'scene_entrance' && targetLoc.sceneId === 'scene_table5';
+      const closesDoorOnEntry = enteringFromStreet && /(?:در|درب).*(?:پشت\s*سر)?.*(?:می\s*)?(?:بند|بسته)|پشت\s*سرم.*(?:می\s*)?بند/.test(playerInput);
+      if (enteringFromStreet) {
+        const environmentState = state.environmentState ?? (state.environmentState = {});
+        environmentState.entranceDoorOpen = !closesDoorOnEntry;
+        if (state.worldObjects?.cafe_door) state.worldObjects.cafe_door.state.isOpen = !closesDoorOnEntry;
+        effects.push({ type: 'modify_environment', key: 'entranceDoorOpen', value: !closesDoorOnEntry });
+      }
+      rawNarrative = enteringFromStreet
+        ? `${closesDoorOnEntry
+            ? 'وارد سالن اصلی کافه می‌شوی و درِ شیشه‌ای را پشت سرت چفت می‌کنی.'
+            : 'درِ شیشه‌ای را هل می‌دهی و وارد سالن اصلی کافه می‌شوی؛ در پشت سرت آرام برمی‌گردد، اما کامل چفت نمی‌شود.'} چند قدم جلوتر، میز شمارهٔ ۵ با فنجان رهاشده دیده می‌شود؛ حانیه نزدیک میز ایستاده و پنتی زیر صندلی کز کرده است.`
+        : targetLoc.defaultDescription;
+
+      // Compound movement + dialogue: if player arrived and also addressed an NPC present here
+      if (directNpc && targetLoc.activeEntityIds?.includes(directNpc)) {
+        const solverRes = solveSemanticAction(semantic, state);
+        if (solverRes.narrative) {
+          rawNarrative = `${rawNarrative}\n\n${solverRes.narrative}`;
+        }
+        if (solverRes.acceptedEffects.length > 0) {
+          effects.push(...solverRes.acceptedEffects);
+        }
+      }
+
+      resolution = createTurnResolution('GENERIC_MOVE', effects);
     }
   }
 

@@ -468,7 +468,7 @@ export const LOCATION_REGISTRY: Record<string, LocationDefinition> = {
     nameFa: 'کوچه حسینی و ورودی کافه',
     sceneId: 'scene_entrance',
     nodeId: 'NODE_01',
-    reachableFrom: ['scene_table5', 'scene_hosseini_alley'],
+    reachableFrom: ['scene_table5', 'scene_counter', 'scene_hosseini_alley'],
     defaultDescription: 'روبروی در ورودی کافه در کوچهٔ حسینی می‌ایستی. نم‌نم باران روی سنگ‌فرش می‌نشیند و نور زرد از پنجره کافه به بیرون می‌تابد.',
     activeEntityIds: ['exiting_man'],
     visibleObjectIds: ['cafe_door', 'wet_receipt', 'exiting_man'],
@@ -488,7 +488,7 @@ export const LOCATION_REGISTRY: Record<string, LocationDefinition> = {
     nameFa: 'پیشخوان و کانتر باریستا',
     sceneId: 'scene_counter',
     nodeId: 'NODE_03',
-    reachableFrom: ['scene_table5', 'scene_gallery', 'scene_office', 'scene_cctv'],
+    reachableFrom: ['scene_table5', 'scene_entrance', 'scene_gallery', 'scene_office', 'scene_cctv'],
     defaultDescription: 'کنار پیشخوان چوبی صیقلی کافه می‌ایستی. یاشین با پیراهن آراسته و مانی پشت دستگاه اسپرسو متوجه حضورت می‌شوند.',
     activeEntityIds: ['yashin', 'mani'],
     visibleObjectIds: ['barista_counter', 'pos_terminal', 'espresso_machine', 'steam_wand', 'cash_drawer'],
@@ -609,9 +609,9 @@ export function findWorldObject(keyword: string, objects: Record<string, WorldOb
   if (/فنجان|فنجون|اسپرسو|مایع.*فنجان/.test(norm) || hasStandaloneLexeme(norm, 'کاپ')) return objects.table5_cup;
   if (/نعلبکی|زیر.*فنجان/.test(norm)) return objects.table5_saucer;
   if (/پایه.*منو|منوی/.test(norm) || hasStandaloneLexeme(norm, 'منو')) return objects.table5_menu;
+  if (/دوربین|cctv|مانیتور.*دوربین|تصاویر.*دوربین/.test(norm)) return objects.cctv_system;
   if (/پوز|مانیتور.*پوز|لاگ|ثبت.*سفارش/.test(norm)) return objects.pos_terminal;
   if (hasStandaloneLexeme(norm, 'رسید') || /فیش|کاغذ.*خیس|برگه.*خیس|نم‌کشیده|کف.*(?:پیاده‌رو|ورودی)|سنگ‌?فرش/.test(norm)) return objects.wet_receipt;
-  if (/دوربین|cctv|مانیتور.*دوربین/.test(norm)) return objects.cctv_system;
   if (/نازل|لوله.*بخار/.test(norm)) return objects.steam_wand;
   if (/کانتر|پیشخوان|میز.*بار/.test(norm)) return objects.barista_counter;
   if (/صندلی|نیمکت/.test(norm)) return objects.wooden_chair;
@@ -646,7 +646,7 @@ export function findLocation(keyword: string): LocationDefinition | undefined {
   if (/hosseini|کوچه.*حسینی|تاریکی.*کوچه/.test(norm)) return LOCATION_REGISTRY.scene_hosseini_alley;
   if (/collector|کلکسیونر|نماینده.*خریدار|ملاقات.*خریدار|جلسه.*پلاک/.test(norm)) return LOCATION_REGISTRY.scene_collector_meeting;
   if (/archive|آرشیو|میز.*شواهد|سنتز.*شواهد/.test(norm)) return LOCATION_REGISTRY.scene_archive;
-  if (/underpainting|لایه.*نهایی|جمع.*بندی.*تابلو|افشای.*تاریخی/.test(norm)) return LOCATION_REGISTRY.scene_underpainting;
+  if (/underpainting|لایه.*(نهایی|زیرین)|لایه‌های\s*زیرین|زیرین.*تابلو|نقاشی.*زیرین|جمع.*بندی.*تابلو|افشای.*تاریخی/.test(norm)) return LOCATION_REGISTRY.scene_underpainting;
   if (/entrance|door|cafe_door|ورودی|کوچه|بیرون/.test(norm) || hasStandaloneLexeme(norm, 'در')) {
     return LOCATION_REGISTRY.scene_entrance;
   }
@@ -659,7 +659,28 @@ export function isLocationReachable(fromScene: string, targetScene: string): boo
   if (from === target) return true;
   const targetLoc = LOCATION_REGISTRY[target];
   if (!targetLoc) return false;
-  return targetLoc.reachableFrom.includes(from);
+  if (targetLoc.reachableFrom.includes(from)) return true;
+  // Salon transit: The cafe salon (scene_table5) connects the entrance to internal cafe locations
+  if (from === 'scene_entrance' && targetLoc.reachableFrom.includes('scene_table5')) {
+    return true;
+  }
+  if (target === 'scene_entrance') {
+    const fromLoc = LOCATION_REGISTRY[from];
+    if (fromLoc?.reachableFrom.includes('scene_table5')) {
+      return true;
+    }
+  }
+  // CCTV transit through office or counter
+  if (from === 'scene_cctv' && (targetLoc.reachableFrom.includes('scene_office') || targetLoc.reachableFrom.includes('scene_counter'))) {
+    return true;
+  }
+  if (target === 'scene_cctv') {
+    const fromLoc = LOCATION_REGISTRY[from];
+    if (fromLoc?.reachableFrom.includes('scene_office') || fromLoc?.reachableFrom.includes('scene_counter')) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function isLocationUnlocked(location: LocationDefinition, state: import('./types.js').RunState): boolean {

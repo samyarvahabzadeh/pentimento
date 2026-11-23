@@ -50,6 +50,19 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
   const explicitReport = /به\s+(?:سالار|صالحی|حانیه|یاشین|مانی|کلکسیونر|خریدار).*?(?:می‌?گم|میگم|می‌?گویم|توضیح\s*می‌?(?:دم|دهم)|خبر\s*می‌?(?:دم|دهم)).*(?:کردم|گفتم|شنیدم|دیدم|فهمید|بود|شد|رفت)/.test(norm);
   const orderRequest = /سفارش\s*می‌?(?:دم|دهم)|(?:قهوه|اسپرسو|نوشیدنی).*(?:می‌?خوام|می‌?خواهم|بیار|لطفا)|(?:یه|یک)\s*(?:قهوه|اسپرسو).*(?:سفارش|می‌?خوام|می‌?خواهم)/.test(norm);
 
+  const hasMovementIntent = (
+    /(?:می‌?ر(?:م|وم)|میرم|می‌?(?:آ|ا)م|میام|حرکت\s*می‌?|قدم\s*برمی‌?|وارد\s*(?:می‌?|ش)|خارج\s*(?:می‌?|ش)|برمی‌?گرد)/.test(norm) ||
+    (/(?:^|\s)برم(?:\s|$)/.test(norm) && !/دور\s*و\s*بر/.test(norm))
+  ) && !/نگاه|دیدن|ببین|انداخت|سرک|گوش|بشنو/.test(norm);
+  const hasNpcMention = /سالار|صالحی|یاشین|مانی|حانیه|کلکسیونر|خریدار|مرد\s*پالتو/.test(norm);
+  const isPureConversationalQuery = Boolean(
+    conversationalIntent && (
+      conversationalIntent === 'scene_listen' ||
+      conversationalIntent === 'scene_peek' ||
+      (!hasMovementIntent && !hasNpcMention)
+    )
+  );
+
   // 1. Generic Primitive Extraction
   // Explicit speech framing wins over action words inside the topic.  Asking
   // Salar why he "hid" a contract is an ask, not an attempt to hide Salar.
@@ -62,7 +75,7 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     primitive = 'deceive';
   } else if (explicitThreat) {
     primitive = 'threaten';
-  } else if (conversationalIntent) {
+  } else if (isPureConversationalQuery) {
     primitive = 'inspect';
     target = 'scene_overview';
     confidence = 0.99;
@@ -131,7 +144,10 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     primitive = 'follow';
   } else if (/حواس.*پرت|سرگرم.*کن|پرت.*کردن.*حواس|دست.*به.*سر/.test(norm)) {
     primitive = 'distract';
-  } else if (/پشت.*کانتر|پشت.*بار|وارد|(?:از\s+(?:کافه|سالن|اتاق)\s+خارج)|(?:خارج|بیرون)\s+می‌?(?:روم|رم|شوم|زنم)|داخل.*(کافه|سالن|اتاق)|برم|می‌?رم|می‌?ر[وو]م|میرم|می‌?(?:آ|ا)م|قدم|دستگیره.*فشار/.test(norm)) {
+  } else if (
+    (!/نگاه|دیدن|ببین|انداخت|سرک|گوش|شنود|بشنو/.test(norm) || /وارد|می‌?ر[وو]م|میرم|می‌?آم|میام|قدم\s*بر/.test(norm)) &&
+    /پشت.*کانتر|پشت.*بار|وارد|(?:از\s+(?:کافه|سالن|اتاق)\s+خارج)|(?:خارج|بیرون)\s+می‌?(?:روم|رم|شوم|زنم)|داخل.*(کافه|سالن|اتاق)|برم|می‌?رم|می‌?ر[وو]م|میرم|می‌?(?:آ|ا)م|قدم|دستگیره.*فشار/.test(norm)
+  ) {
     primitive = 'move';
   } else if (/تهدید|تحت.*فشار|فشار.*(می‌?آور|بیار)|زور/.test(norm)) {
     primitive = 'threaten';
@@ -174,11 +190,13 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     return false;
   });
   let addressedNpc: string | undefined;
-  if (/از\s+(?:خانم\s+)?حانیه|به\s+حانیه.*(?:می‌?پرسم|میپرسم|می‌?گم|میگم)|حانیه\s*جان/.test(norm)) addressedNpc = 'haniyeh';
-  else if (/از\s+سالار|به\s+سالار.*(?:می‌?پرسم|میپرسم|می‌?گم|میگم|زنگ|پیام)|سالار\s*جان/.test(norm)) addressedNpc = 'salar';
-  else if (/از\s+یاشین|به\s+یاشین.*(?:می‌?پرسم|میپرسم|می‌?گم|میگم)|یاشین\s*جان/.test(norm)) addressedNpc = 'yashin';
-  else if (/از\s+مانی|به\s+مانی.*(?:می‌?پرسم|میپرسم|می‌?گم|میگم)|مانی\s*جان/.test(norm)) addressedNpc = 'mani';
-  else if (/از\s+(?:کلکسیونر|خریدار)|به\s+(?:کلکسیونر|خریدار).*(?:می‌?پرسم|میپرسم|می‌?گم|میگم)/.test(norm)) addressedNpc = 'collector';
+  const addressPrefix = '(?:رو\\s*به|به\\s*سمت|خطاب\\s*به|با|از|به|پیش)\\s+(?:آقا(?:ی)?\\s+|خانم\\s+)?';
+  if (new RegExp(`${addressPrefix}حانیه|حانیه\\s*جان`).test(norm)) addressedNpc = 'haniyeh';
+  else if (new RegExp(`${addressPrefix}سالار|سالار\\s*جان`).test(norm)) addressedNpc = 'salar';
+  else if (new RegExp(`${addressPrefix}یاشین|یاشین\\s*جان`).test(norm)) addressedNpc = 'yashin';
+  else if (new RegExp(`${addressPrefix}مانی|مانی\\s*جان`).test(norm)) addressedNpc = 'mani';
+  else if (new RegExp(`${addressPrefix}(?:کلکسیونر|خریدار|نماینده)`).test(norm)) addressedNpc = 'collector';
+  else if (new RegExp(`${addressPrefix}(?:مرد\\s*پالتوپوش|مرد\\s*پالتو|مرد)`).test(norm)) addressedNpc = 'exiting_man';
 
   if (!addressedNpc && orderRequest) {
     const present = state.scene?.activeEntityIds ?? [];
@@ -187,7 +205,10 @@ export function extractSemanticAction(playerInput: string, state: RunState): Sem
     else if (present.includes('mani')) addressedNpc = 'mani';
   }
 
-  const matchedNpc = addressedNpc ?? mentionedNpcs[0];
+  const presentEntityIds = (state.scene?.activeEntityIds ?? []).map(id => id.replace('_salehi', ''));
+  const matchedNpc = addressedNpc ?? (
+    mentionedNpcs.find(id => presentEntityIds.includes(id)) ?? mentionedNpcs[0]
+  );
   if (matchedNpc) {
     const isSocialAction = ['deceive', 'ask', 'threaten', 'accuse', 'give', 'persuade', 'distract'].includes(primitive);
     if (isSocialAction || !target) {
@@ -689,7 +710,9 @@ export function matchCandidateDeterministically(
     const histCand = candidates.find(c =>
       c.id === 'SYNTHESIS_REVEAL_HISTORICAL_BREACH' ||
       c.id === 'REVEAL_HISTORICAL_BREACH_FLORENCE' ||
-      c.id === 'PROBE_UNDERPAINTING_WITH_INCOMPLETE_THEORY'
+      c.id === 'PROBE_UNDERPAINTING_WITH_INCOMPLETE_THEORY' ||
+      c.id === 'EXAMINE_UNDERPAINTING_LAYERS' ||
+      c.id === 'SUPERIMPOSE_PAINTING_VERSIONS'
     );
     if (histCand) return { candidateId: histCand.id, confidence: 0.95, kind: 'other' };
   }
@@ -699,13 +722,13 @@ export function matchCandidateDeterministically(
     const behind = candidates.find(c => c.id === 'INSPECT_BEHIND_PAINTING');
     if (behind) return { candidateId: behind.id, confidence: 0.98, kind: behind.kind };
   }
-  if (/آرشیو|سنتز|اتصال.*(مدرک|شواهد)|جمع.*(?:شواهد|مدارک)|جمع.?بندی|نظریه.*(?:مدرک|شواهد)/.test(norm)) {
+  if (/آرشیو|سنتز|اتصال.*(مدرک|شواهد)|جمع.*(?:شواهد|مدارک)|جمع.?بندی|نظریه.*(?:مدرک|شواهد)|ترکیب.*(?:شواهد|مدارک)|(?:شواهد|مدارک).*ترکیب/.test(norm)) {
     const archive = candidates.find(c => c.id === 'PROCEED_TO_ARCHIVE_SYNTHESIS');
     if (archive) return { candidateId: archive.id, confidence: 0.98, kind: archive.kind };
     const submit = candidates.find(c => c.id === 'SUBMIT_ARCHIVE_SYNTHESIS');
     if (submit) return { candidateId: submit.id, confidence: 0.98, kind: submit.kind };
   }
-  if (/ثبت.*(نتیجه|پایان)|جمع.*بندی.*نهایی|پایان.*پرونده|پرونده.*پایان|تصمیم.*نهایی/.test(norm)) {
+  if (/ثبت.*(نتیجه|پایان)|جمع.*بندی.*نهایی|پایان.*پرونده|پرونده.*پایان|تصمیم.*(?:نهایی|می‌?گیر|من)|(?:حفظ|نگهداشت).*(?:حقیقت|آدم‌ها)|اعلام.*پایان/.test(norm)) {
     const final = candidates.find(c => c.id === 'RESOLVE_FINAL_ENDING_DECISION');
     if (final) return { candidateId: final.id, confidence: 0.98, kind: final.kind };
   }
