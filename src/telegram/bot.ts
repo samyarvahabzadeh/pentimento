@@ -24,6 +24,7 @@ import {
   AccessAttemptLimiter,
   readAccessPasswordConfig,
   verifyAccessPassword,
+  verifyAnyAccessPassword,
 } from './accessControl.js';
 import { buildPlayerHelp, buildRecapPanel, buildWherePanel } from './playerPanel.js';
 
@@ -168,11 +169,12 @@ function buildIntroMessage(): string {
 function isAuthorizedContext(ctx: any): boolean {
   if (isAdminContext(ctx)) return true;
   const userId = ctx.from?.id?.toString();
+  const fingerprints = accessPasswordConfig.fingerprints ?? (accessPasswordConfig.fingerprint ? [accessPasswordConfig.fingerprint] : []);
   return Boolean(
     userId &&
     accessPasswordConfig.active &&
-    accessPasswordConfig.fingerprint &&
-    isAccessGranted(userId, accessPasswordConfig.fingerprint)
+    fingerprints.length > 0 &&
+    isAccessGranted(userId, fingerprints)
   );
 }
 
@@ -438,7 +440,8 @@ async function handleAccessCandidate(ctx: any, userId: string, candidate: string
   // best-effort because private-chat permissions can vary by platform policy.
   await ctx.deleteMessage().catch(() => {});
 
-  if (!accessPasswordConfig.active || !accessPasswordConfig.normalizedPassword || !accessPasswordConfig.fingerprint) {
+  const passwords = accessPasswordConfig.normalizedPasswords ?? (accessPasswordConfig.normalizedPassword ? [accessPasswordConfig.normalizedPassword] : []);
+  if (!accessPasswordConfig.active || passwords.length === 0) {
     await sendAccessPrompt(ctx);
     return;
   }
@@ -450,9 +453,10 @@ async function handleAccessCandidate(ctx: any, userId: string, candidate: string
     return;
   }
 
-  if (verifyAccessPassword(candidate, accessPasswordConfig.normalizedPassword)) {
+  const matchResult = verifyAnyAccessPassword(candidate, passwords);
+  if (matchResult.verified && matchResult.matchingFingerprint) {
     accessAttemptLimiter.recordSuccess(userId);
-    grantAccess(userId, accessPasswordConfig.fingerprint);
+    grantAccess(userId, matchResult.matchingFingerprint);
     await ctx.reply('✅ دسترسی فعال شد. بازی هر نفر جدا ذخیره می‌شود و می‌توانی هر کاری را به زبان خودت انجام بدهی.');
     await resumeOrBeginRun(ctx, userId);
     return;

